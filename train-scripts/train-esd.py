@@ -55,7 +55,7 @@ def load_model_from_config(config, ckpt, device="cpu", verbose=False):
 def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=None, n_samples=1,t_start=-1,log_every_t=None,till_T=None,verbose=True):
     a_prompt = "best quality, extremely detailed"
     n_prompt = "longbody, lowres,bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
-    prompt = prompt
+    # prompt = prompt
     guess_mode = False
     low_threshold = 100
     high_threshold = 200
