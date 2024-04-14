@@ -333,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_method', help='method of training', type=str, required=True)
     parser.add_argument('--start_guidance', help='guidance of start image used to train', type=float, required=False, default=3)
     parser.add_argument('--negative_guidance', help='guidance of negative training used to train', type=float, required=False, default=1)
-    parser.add_argument('--iterations', help='iterations used to train', type=int, required=False, default=600)
+    parser.add_argument('--iterations', help='iterations used to train', type=int, required=False, default=500)
     parser.add_argument('--lr', help='learning rate used to train', type=int, required=False, default=1e-5)
     parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='./configs/controlnet/cldm_v15.yaml')
     parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='./models/ldm/controlnet_canny/control_sd15_canny.pth')
