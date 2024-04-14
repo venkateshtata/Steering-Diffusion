@@ -24,7 +24,7 @@ def load_image_as_array(image_path):
 
 # Configs
 # resume_path = '/notebooks/erase/stable-diffusion/controlnet_files/control_sd15_canny.pth' # your checkpoint path
-resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_bird-method_xattn-sg_3-ng_1-iter_500-lr_1e-05/compvis-word_bird-method_xattn-sg_3-ng_1-iter_500-lr_1e-05.pt"
+resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_bird-method_selfattn-sg_3-ng_1-iter_500-lr_1e-05/compvis-word_bird-method_selfattn-sg_3-ng_1-iter_500-lr_1e-05.pt"
 N = 1
 ddim_steps = 50
 
@@ -33,11 +33,11 @@ model = create_model('/notebooks/erase/stable-diffusion/controlnet_files/cldm_v1
 model.load_state_dict(load_state_dict(resume_path, location='cuda'))
 model = model.cuda()
 sampler = DDIMSampler(model)
-output_img_path = 'dog-prompt_dog-canny_guide-9.0_output_xattn.png'
+output_img_path = 'bird-prompt_bird-canny_output_selfattn.png'
 
 a_prompt = "best quality, extremely detailed"
 n_prompt = ""
-prompt = "dog"
+prompt = "bird"
 guess_mode = False
 n_samples=1
 h = 512
@@ -47,7 +47,7 @@ low_threshold = 100
 high_threshold = 200
 
 # For the conditional image init
-cond_img = load_image_as_array("./test_images/dog_canny.png")
+cond_img = load_image_as_array("./test_images/bird_canny.png")
 cond_img = resize_image(HWC3(cond_img), 512)
 
 h, w, c = cond_img.shape
