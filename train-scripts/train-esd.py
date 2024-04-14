@@ -184,7 +184,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
     criteria = torch.nn.MSELoss()
     history = []
 
-    name = f'controlnet-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{negative_guidance}-iter_{iterations}-lr_{lr}'
+    name = f'compvis-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{negative_guidance}-iter_{iterations}-lr_{lr}'
     # TRAINING CODE
     pbar = tqdm(range(iterations))
     for i in pbar:
@@ -312,6 +312,7 @@ def save_model(model, name, num, compvis_config_file=None, diffusers_config_file
     else:
         path = f'{folder_path}/{name}.pt'
     if save_compvis:
+        print("saving compvis format")
         torch.save(model.state_dict(), path)
 
     if save_diffusers:
@@ -335,8 +336,8 @@ if __name__ == '__main__':
     parser.add_argument('--negative_guidance', help='guidance of negative training used to train', type=float, required=False, default=1)
     parser.add_argument('--iterations', help='iterations used to train', type=int, required=False, default=500)
     parser.add_argument('--lr', help='learning rate used to train', type=int, required=False, default=1e-5)
-    parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='./configs/controlnet/cldm_v15.yaml')
-    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='./models/ldm/controlnet_canny/control_sd15_canny.pth')
+    parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/controlnet/cldm_v15.yaml')
+    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/controlnet_canny/control_sd15_canny.pth')
     # parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/stable-diffusion/v1-inference.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/stable-diffusion-v1/sd-v1-4-full-ema.ckpt')
     parser.add_argument('--diffusers_config_path', help='diffusers unet config json path', type=str, required=False, default='diffusers_unet_config.json')
