@@ -63,8 +63,8 @@ def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=N
 
     # For the conditional image init
     cond_img = load_image_as_array(erase_condition_image)
-    cond_img = resize_image(HWC3(cond_img), 512)
-    h, w = 512, 512
+    cond_img = resize_image(HWC3(cond_img), h)
+    # h, w = 512, 512
     
     # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
     # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
@@ -168,7 +168,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
                     parameters.append(param)
         if train_method == 'selflayer':
             if 'attn1' in name:
-                if 'input_blocks.4.' in name or 'input_blocks.7.' in name:
+                if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
                     print(name)
                     parameters.append(param)
     # set model to train
@@ -217,9 +217,9 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             # get Un-conditional scores from frozen model at time step t and image z
             unprompt = ""
             uncond_img = load_image_as_array("unconditional.png")
-            uncond_img = resize_image(HWC3(uncond_img), 512)
+            uncond_img = resize_image(HWC3(uncond_img), image_size)
             
-            h, w = 512, 512
+            h, w = image_size, image_size
 
             # uncond_detected_map = np.zeros_like(uncond_img, dtype=np.uint8)
             # uncond_detected_map[np.min(uncond_img, axis=2) < 127] = 255
@@ -238,9 +238,9 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             # get Conditional scores from frozen model at time step t and image z
             cprompt = prompt
             cond_img = load_image_as_array(erase_condition_image)
-            cond_img = resize_image(HWC3(cond_img), 512)
+            cond_img = resize_image(HWC3(cond_img), image_size)
             
-            h, w = 512, 512
+            h, w = image_size, image_size
 
             # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
             # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
@@ -260,9 +260,9 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         # get conditional score from ESD model
         e_prompt = prompt
         e_cond_img = load_image_as_array(erase_condition_image)
-        e_cond_img = resize_image(HWC3(e_cond_img), 512)
+        e_cond_img = resize_image(HWC3(e_cond_img), image_size)
         
-        h, w = 512, 512
+        h, w = image_size, image_size
 
         # e_cond_detected_map = np.zeros_like(e_cond_img, dtype=np.uint8)
         # e_cond_detected_map[np.min(e_cond_img, axis=2) < 127] = 255
