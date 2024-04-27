@@ -46,8 +46,8 @@ python test_model.py
 |:--------------------------|:-------------------:|:-------------------:|
 | **Erased ControlNet**     | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/bird-prompt_bird-canny_output_v1.png" width="128" height="128" alt="Image 1"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/dog-prompt_dog-canny_output_v1.png" width="128" height="128" alt="Image 2"> |
 | **Default ControlNet**    | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/bird-prompt_bird-canny_output_default.png" width="128" height="128" alt="Image 5"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/dog-prompt_dog-canny_output_default.png" width="128" height="128" alt="Image 6"> |
-|                           | **Prompt= "Bird"**          | **Prompt= "Dog"**          |
-|     **Masks Used**        | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/test_images/bird_canny.png" width="128" height="128" alt="Image 5"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/test_images/dog_canny.png" width="128" height="128" alt="Image 6"> |
+|     Prompt           | **"Bird"**          | **"Dog"**          |
+|     Mask             | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/test_images/bird_canny.png" width="128" height="128" alt="Image 5"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/test_images/dog_canny.png" width="128" height="128" alt="Image 6"> |
 
 
 
