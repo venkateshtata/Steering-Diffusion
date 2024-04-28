@@ -163,7 +163,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
                 parameters.append(param)
         if train_method == 'xlayer':
             if 'attn2' in name:
-                if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
+                if 'output_blocks.6.' in name or ' .8.' in name:
                     print(name)
                     parameters.append(param)
         if train_method == 'selflayer':

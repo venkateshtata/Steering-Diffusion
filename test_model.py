@@ -24,7 +24,7 @@ def load_image_as_array(image_path):
 
 # Configs
 # resume_path = '/notebooks/erase/stable-diffusion/controlnet_files/control_sd15_canny.pth' # your checkpoint path
-resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_bird-method_notime-sg_3-ng_1-iter_500-lr_1e-05/compvis-word_bird-method_notime-sg_3-ng_1-iter_500-lr_1e-05.pt"
+resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_bird-method_xlayer-sg_3-ng_1-iter_500-lr_1e-05/compvis-word_bird-method_xlayer-sg_3-ng_1-iter_500-lr_1e-05.pt"
 N = 1
 ddim_steps = 50
 
@@ -33,7 +33,7 @@ model = create_model('/notebooks/erase/stable-diffusion/controlnet_files/cldm_v1
 model.load_state_dict(load_state_dict(resume_path, location='cuda'))
 model = model.cuda()
 sampler = DDIMSampler(model)
-output_img_path = 'dog-prompt_dog-canny_output_notime.png'
+output_img_path = 'dog-prompt_dog-canny_output_xlayer.png'
 
 a_prompt = "best quality, extremely detailed"
 n_prompt = ""
