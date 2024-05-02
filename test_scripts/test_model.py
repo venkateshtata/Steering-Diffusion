@@ -22,33 +22,40 @@ def load_image_as_array(image_path):
         return image_array
 
 
+object_class = "bag"
+input_type = "scribble"
+model_used = "hed"
+unconditional_guidance_scale = 7
+res = 512
+
 # Configs
-# resume_path = '/notebooks/erase/stable-diffusion/controlnet_files/control_sd15_canny.pth' # your checkpoint path
-resume_path = "/notebooks/erase/stable-diffusion/models/controlnet-word_bird-method_full-sg_3-ng_1-iter_500-lr_1e-05/controlnet-word_bird-method_full-sg_3-ng_1-iter_500-lr_1e-05.pt"
+resume_path = '/notebooks/erase/stable-diffusion/models/ldm/controlnet_hed/control_sd15_hed.pth' # your checkpoint path
+# resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_fish-method_notime-sg_3-ng_1-iter_500-lr_1e-05/compvis-word_fish-method_notime-sg_3-ng_1-iter_500-lr_1e-05.pt"
 N = 1
 ddim_steps = 50
 
 
 model = create_model('/notebooks/erase/stable-diffusion/controlnet_files/cldm_v15.yaml').cpu()
-model.load_state_dict(load_state_dict(resume_path, location='cuda'))
+model.load_state_dict(load_state_dict(resume_path, location='cuda'), strict=False)
 model = model.cuda()
 sampler = DDIMSampler(model)
-output_img_path = 'bird-prompt_bird-canny_output_v1.png'
+output_img_path = f'{object_class}-prompt_{object_class}-{input_type}_{unconditional_guidance_scale}-gs_{model_used}-default.png'
+# output_img_path = 'fish_test.png'
 
 a_prompt = "best quality, extremely detailed"
-n_prompt = "longbody, lowres,bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
-prompt = "bird"
+n_prompt = "worst quality, low quality, noisy"
+prompt = object_class
 guess_mode = False
 n_samples=1
-h = 512
-w = 512
+h = res
+w = res
 
 low_threshold = 100
 high_threshold = 200
 
 # For the conditional image init
-cond_img = load_image_as_array("./test_images/bird_canny.png")
-cond_img = resize_image(HWC3(cond_img), 512)
+cond_img = load_image_as_array(f"../test_input_images/{object_class}_{input_type}.png")
+cond_img = resize_image(HWC3(cond_img), res)
 
 h, w, c = cond_img.shape
 
@@ -72,7 +79,7 @@ shape = (4, h//8, w//8)
 
 model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
 
-samples, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=9.0, unconditional_conditioning=un_cond)
+samples, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=unconditional_guidance_scale, unconditional_conditioning=un_cond)
 
 
 print("samples: ", samples.shape)
@@ -84,4 +91,4 @@ x_samples = x_samples.cpu().numpy()
 x_samples = (x_samples * 255).astype(np.uint8)
 
 image_name = output_img_path.split('/')[-1]
-Image.fromarray(x_samples).save('./outputs/' + image_name)
+Image.fromarray(x_samples).save('../outputs/' + image_name)

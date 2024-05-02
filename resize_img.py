@@ -11,5 +11,5 @@ def resize_image(input_path, output_path, size=(512, 512)):
         print(f"Image saved to {output_path}")
 
 # Example usage
-resize_image('./test_images/images_bird_canny.png', './test_images/images_bird_canny.png')
+resize_image('./test_images/image.png', './test_images/fish_canny.png')
 
