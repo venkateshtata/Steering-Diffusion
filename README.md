@@ -154,6 +154,30 @@ python test_model.py
 | **Erased ControlNet**     | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/bird-prompt_bird-canny_output_xlayer.png" width="128" height="128" alt="Erased ControlNet Bird Output"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/dog-prompt_dog-canny_output_xlayer.png" width="128" height="128" alt="Erased ControlNet Dog Output"> |
 
 
+### Experiment-6
+
+#### Experiment Configuration:
+
+- Training Iterations: **1000**
+- Dataset used: Scribble Train/Test Sketch
+- DDIM Steps: **50**
+- Learning Rate: **1e-5**
+- Resolution: **512 x 512**
+- Start Guidance: **3**
+- Negative Guidance: **1**
+- Unconditional Guidance Scale: **7.0**
+- Positive Prompt: **"best quality, extremely detailed {Concept-Name}"**
+- Negative Prompt: **"extra digit, fewer digits, cropped, worst quality, low quality, noisy"**
+- Layers Trained: **notime**
+- Concept To Erase: **Airplane**
+
+#### Experiment Results:
+
+|           Prompt      | **"Airplane"**        | **"Bag"**        |
+|:--------------------------|:-------------------------:|:-------------------------:|
+| Mask                 | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/test_input_images/airplane_sketch.png" width="128" height="128" alt="Mask for airplane"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/test_input_images/bag_scribble.png" width="128" height="128" alt="Mask for Dog"> |
+| **Default ControlNet**    | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/bird-prompt_bird-canny_output_default.png" width="128" height="128" alt="Default ControlNet Bird Output"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/dog-prompt_dog-canny_output_default.png" width="128" height="128" alt="Default ControlNet Dog Output"> |
+| **Erased ControlNet**     | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/bird-prompt_bird-canny_output_xlayer.png" width="128" height="128" alt="Erased ControlNet Bird Output"> | <img src="https://github.com/venkateshtata/Steering-Diffusion/blob/main/outputs/dog-prompt_dog-canny_output_xlayer.png" width="128" height="128" alt="Erased ControlNet Dog Output"> |
 
 
 
