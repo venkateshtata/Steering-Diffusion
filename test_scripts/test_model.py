@@ -24,13 +24,13 @@ def load_image_as_array(image_path):
 
 object_class = "bag"
 input_type = "scribble"
-model_used = "hed"
+model_used = "scribble"
 unconditional_guidance_scale = 7
 res = 512
 
 # Configs
-resume_path = '/notebooks/erase/stable-diffusion/models/ldm/controlnet_hed/control_sd15_hed.pth' # your checkpoint path
-# resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_fish-method_notime-sg_3-ng_1-iter_500-lr_1e-05/compvis-word_fish-method_notime-sg_3-ng_1-iter_500-lr_1e-05.pt"
+# resume_path = '/notebooks/erase/stable-diffusion/models/ldm/controlnet_scribble/control_sd15_scribble.pth' # your checkpoint path
+resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt"
 N = 1
 ddim_steps = 50
 
@@ -39,7 +39,7 @@ model = create_model('/notebooks/erase/stable-diffusion/controlnet_files/cldm_v1
 model.load_state_dict(load_state_dict(resume_path, location='cuda'), strict=False)
 model = model.cuda()
 sampler = DDIMSampler(model)
-output_img_path = f'{object_class}-prompt_{object_class}-{input_type}_{unconditional_guidance_scale}-gs_{model_used}-default.png'
+output_img_path = f'{object_class}-prompt_{object_class}-{input_type}_{unconditional_guidance_scale}-gs_{model_used}-notime.png'
 # output_img_path = 'fish_test.png'
 
 a_prompt = "best quality, extremely detailed"
@@ -62,8 +62,11 @@ h, w, c = cond_img.shape
 # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
 # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
 
-cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
-cond_detected_map = HWC3(cond_detected_map)
+# cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
+# cond_detected_map = HWC3(cond_detected_map)
+
+cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
+cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
 
 cond_control = torch.from_numpy(cond_detected_map.copy()).float().cuda() / 255.0
 cond_control = torch.stack([cond_control for _ in range(n_samples)], dim=0)

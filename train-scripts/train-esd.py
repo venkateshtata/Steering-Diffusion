@@ -23,7 +23,7 @@ import einops
 from pytorch_lightning import seed_everything
 from annotator.canny import CannyDetector
 
-apply_canny = CannyDetector()
+# apply_canny = CannyDetector()
 
 
 def load_image_as_array(image_path):
@@ -54,7 +54,7 @@ def load_model_from_config(config, ckpt, device="cpu", verbose=False):
 @torch.no_grad()
 def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=None, n_samples=1,t_start=-1,log_every_t=None,till_T=None,verbose=True):
     a_prompt = "best quality, extremely detailed"
-    n_prompt = "longbody, lowres,bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
+    n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
     # prompt = prompt
     guess_mode = False
     low_threshold = 100
@@ -68,8 +68,10 @@ def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=N
     
     # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
     # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
-    cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
-    cond_detected_map = HWC3(cond_detected_map)
+    # cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
+    # cond_detected_map = HWC3(cond_detected_map)
+    cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
+    cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
 
     cond_control = torch.from_numpy(cond_detected_map.copy()).float().cuda() / 255.0
     cond_control = torch.stack([cond_control for _ in range(n_samples)], dim=0)
@@ -85,7 +87,7 @@ def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=N
 
     model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
     
-    samples_ddim, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=9.0, unconditional_conditioning=un_cond)
+    samples_ddim, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=7.0, unconditional_conditioning=un_cond)
 
     if log_every_t is not None:
         return samples_ddim, inters
@@ -184,7 +186,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
     criteria = torch.nn.MSELoss()
     history = []
 
-    name = f'compvis-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{negative_guidance}-iter_{iterations}-lr_{lr}'
+    name = f'compvis-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{negative_guidance}-iter_{iterations}-lr_{lr}_scribble'
     # TRAINING CODE
     pbar = tqdm(range(iterations))
     for i in pbar:
@@ -208,7 +210,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             
             #Get outputs from frozen model
             a_prompt = "best quality, extremely detailed"
-            n_prompt = "longbody, lowres,bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
+            n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
             guess_mode = False
             n_samples=1
             low_threshold = 100
@@ -223,8 +225,10 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
 
             # uncond_detected_map = np.zeros_like(uncond_img, dtype=np.uint8)
             # uncond_detected_map[np.min(uncond_img, axis=2) < 127] = 255
-            uncond_detected_map = apply_canny(uncond_img, low_threshold, high_threshold)
-            uncond_detected_map = HWC3(uncond_detected_map)
+            # uncond_detected_map = apply_canny(uncond_img, low_threshold, high_threshold)
+            # uncond_detected_map = HWC3(uncond_detected_map)
+            uncond_detected_map = np.zeros_like(uncond_img, dtype=np.uint8)
+            uncond_detected_map[np.min(uncond_img, axis=2) < 127] = 255
 
             uncond_control = torch.from_numpy(uncond_detected_map.copy()).float().cuda() / 255.0
             uncond_control = torch.stack([uncond_control for _ in range(n_samples)], dim=0)
@@ -244,8 +248,10 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
 
             # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
             # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
-            cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
-            cond_detected_map = HWC3(cond_detected_map)
+            # cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
+            # cond_detected_map = HWC3(cond_detected_map)
+            cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
+            cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
 
             cond_control = torch.from_numpy(cond_detected_map.copy()).float().cuda() / 255.0
             cond_control = torch.stack([cond_control for _ in range(n_samples)], dim=0)
@@ -266,8 +272,10 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
 
         # e_cond_detected_map = np.zeros_like(e_cond_img, dtype=np.uint8)
         # e_cond_detected_map[np.min(e_cond_img, axis=2) < 127] = 255
-        e_cond_detected_map = apply_canny(e_cond_img, low_threshold, high_threshold)
-        e_cond_detected_map = HWC3(e_cond_detected_map)
+        # e_cond_detected_map = apply_canny(e_cond_img, low_threshold, high_threshold)
+        # e_cond_detected_map = HWC3(e_cond_detected_map)
+        e_cond_detected_map = np.zeros_like(e_cond_img, dtype=np.uint8)
+        e_cond_detected_map[np.min(e_cond_img, axis=2) < 127] = 255
 
         e_cond_control = torch.from_numpy(e_cond_detected_map.copy()).float().cuda() / 255.0
         e_cond_control = torch.stack([e_cond_control for _ in range(n_samples)], dim=0)
@@ -338,13 +346,13 @@ if __name__ == '__main__':
     parser.add_argument('--lr', help='learning rate used to train', type=int, required=False, default=1e-5)
     parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/controlnet/cldm_v15.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/controlnet_canny/control_sd15_canny.pth')
-    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/controlnet_hed/control_sd15_hed.pth')
+    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/controlnet_scribble/control_sd15_scribble.pth')
     # parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/stable-diffusion/v1-inference.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/stable-diffusion-v1/sd-v1-4-full-ema.ckpt')
     parser.add_argument('--diffusers_config_path', help='diffusers unet config json path', type=str, required=False, default='diffusers_unet_config.json')
     parser.add_argument('--devices', help='cuda devices to train on', type=str, required=False, default='0,0')
     parser.add_argument('--seperator', help='separator if you want to train bunch of words separately', type=str, required=False, default=None)
-    parser.add_argument('--image_size', help='image size used to train', type=int, required=False, default=256)
+    parser.add_argument('--image_size', help='image size used to train', type=int, required=False, default=512)
     parser.add_argument('--ddim_steps', help='ddim steps of inference used to train', type=int, required=False, default=50)
     
     parser.add_argument('--erase_condition_image', help='Erase Condition Image', type=str, required=True, default="")
