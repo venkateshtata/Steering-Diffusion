@@ -220,10 +220,6 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         emb_0 = model.get_learned_conditioning([''])
         emb_p = model.get_learned_conditioning([word])
         emb_n = model.get_learned_conditioning([f'{word}'])
-        
-        # print("emb_0 shape: ", emb_0.shape)
-        # print("emb_p shape: ", emb_p.shape)
-        # print("emb_n shape: ", emb_n.shape)
 
         opt.zero_grad()
 
@@ -239,19 +235,12 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         with torch.no_grad():
             # generate an image with the concept from ESD model
             z = quick_sample_till_t(emb_p.to(devices[0]), start_guidance, start_code, int(t_enc)) # emb_p seems to work better instead of emb_0
-            print("z shape: ", z.shape)
             # get conditional and unconditional scores from frozen model at time step t and image z
             e_0 = model_orig.apply_model(z.to(devices[1]), t_enc_ddpm.to(devices[1]), emb_0.to(devices[1]))
-            print("e_0 shape: ", e_0.shape)
-            
             e_p = model_orig.apply_model(z.to(devices[1]), t_enc_ddpm.to(devices[1]), emb_p.to(devices[1]))
-            print("e_p shape: ", e_p.shape)
-            
         # breakpoint()
         # get conditional score from ESD model
         e_n = model.apply_model(z.to(devices[0]), t_enc_ddpm.to(devices[0]), emb_n.to(devices[0]))
-        print("e_n shape: ", e_n.shape)
-        
         e_0.requires_grad = False
         e_p.requires_grad = False
         # reconstruction loss for ESD objective from frozen model and conditional score of ESD model

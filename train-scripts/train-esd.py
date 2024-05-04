@@ -1,19 +1,10 @@
-from omegaconf import OmegaConf
 import torch
 from PIL import Image
-from torchvision import transforms
 import os
 from tqdm import tqdm
-from einops import rearrange
 import numpy as np
-from pathlib import Path
 import matplotlib.pyplot as plt
-from ldm.util import instantiate_from_config
 import random
-import glob
-import re
-import shutil
-import pdb
 import argparse
 from convertModels import savemodelDiffusers
 from cldm.model import create_model, load_state_dict
@@ -21,11 +12,10 @@ from cldm.ddim_hacked import DDIMSampler
 from annotator.util import resize_image, HWC3
 import einops
 from pytorch_lightning import seed_everything
-from annotator.canny import CannyDetector
-
-# apply_canny = CannyDetector()
 
 
+
+# Util Functions
 def load_image_as_array(image_path):
     with Image.open(image_path) as img:
         img = img.convert('RGB')
@@ -33,11 +23,7 @@ def load_image_as_array(image_path):
         return image_array
 
 
-# Util Functions
-
 def load_model_from_config(config, ckpt, device="cpu", verbose=False):
-    batch_size = 4
-    logger_freq = 300
     learning_rate = 1e-5
     sd_locked = True
     only_mid_control = False
@@ -51,25 +37,43 @@ def load_model_from_config(config, ckpt, device="cpu", verbose=False):
     return model
 
 
+def save_model(model, name, num, compvis_config_file=None, diffusers_config_file=None, device='cpu', save_compvis=True, save_diffusers=True):
+    # SAVE MODEL
+
+    folder_path = f'models/{name}'
+    os.makedirs(folder_path, exist_ok=True)
+    if num is not None:
+        path = f'{folder_path}/{name}-epoch_{num}.pt'
+    else:
+        path = f'{folder_path}/{name}.pt'
+    if save_compvis:
+        print("saving compvis format")
+        torch.save(model.state_dict(), path)
+
+    if save_diffusers:
+        print('Saving Model in Diffusers Format')
+        savemodelDiffusers(name, compvis_config_file, diffusers_config_file, device=device )
+
+
+def save_history(losses, name, word_print):
+    folder_path = f'models/{name}'
+    os.makedirs(folder_path, exist_ok=True)
+    with open(f'{folder_path}/loss.txt', 'w') as f:
+        f.writelines([str(i) for i in losses])
+    plot_loss(losses,f'{folder_path}/loss.png' , word_print, n=3)
+
+
 @torch.no_grad()
 def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=None, n_samples=1,t_start=-1,log_every_t=None,till_T=None,verbose=True):
     a_prompt = "best quality, extremely detailed"
     n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
-    # prompt = prompt
     guess_mode = False
-    low_threshold = 100
-    high_threshold = 200
     n_samples = 1
 
     # For the conditional image init
     cond_img = load_image_as_array(erase_condition_image)
     cond_img = resize_image(HWC3(cond_img), h)
-    # h, w = 512, 512
-    
-    # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
-    # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
-    # cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
-    # cond_detected_map = HWC3(cond_detected_map)
+
     cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
     cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
 
@@ -80,14 +84,17 @@ def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=N
     seed = random.randint(0, 65535)
     seed_everything(0)
 
-    cond = {"c_concat": [cond_control], "c_crossattn": [model.get_learned_conditioning([prompt + ', ' + a_prompt] * n_samples)]}
-    un_cond = {"c_concat": None if guess_mode else [cond_control], "c_crossattn": [model.get_learned_conditioning([n_prompt] * n_samples)]}
+    model.eval()
+    with torch.no_grad():
 
-    shape = (4, h//8, w//8)
+        cond = {"c_concat": [cond_control], "c_crossattn": [model.get_learned_conditioning([prompt + ', ' + a_prompt] * n_samples)]}
+        un_cond = {"c_concat": None if guess_mode else [cond_control], "c_crossattn": [model.get_learned_conditioning([n_prompt] * n_samples)]}
 
-    model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
-    
-    samples_ddim, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=7.0, unconditional_conditioning=un_cond)
+        shape = (4, h//8, w//8)
+
+        model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
+
+        samples_ddim, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=7.0, unconditional_conditioning=un_cond)
 
     if log_every_t is not None:
         return samples_ddim, inters
@@ -133,6 +140,8 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
     ddim_eta = 0
 
     model_orig, sampler_orig, model, sampler = get_models(config_path, ckpt_path, devices)
+    for param in model_orig.parameters():
+            param.requires_grad = False
 
     # choose parameters to train based on train_method
     parameters = []
@@ -174,19 +183,21 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
                     print(name)
                     parameters.append(param)
     # set model to train
-    model.train()
     
-    # create a lambda function for cleaner use of sampling code (only denoising till time step t)
-    quick_sample_till_t = lambda s, code, t: sample_model(model, sampler,
-                                                                 image_size, image_size, ddim_steps, s, ddim_eta,
-                                                                 start_code=code, till_T=t, verbose=False)
+    model.eval()
+    with torch.no_grad():
+        # create a lambda function for cleaner use of sampling code (only denoising till time step t)
+        quick_sample_till_t = lambda s, code, t: sample_model(model, sampler,
+                                                                     image_size, image_size, ddim_steps, s, ddim_eta,
+                                                                     start_code=code, till_T=t, verbose=False)
 
+    model.train()
     losses = []
     opt = torch.optim.Adam(parameters, lr=lr)
     criteria = torch.nn.MSELoss()
     history = []
 
-    name = f'compvis-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{negative_guidance}-iter_{iterations}-lr_{lr}_scribble'
+    name = f'test-compvis-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{negative_guidance}-iter_{iterations}-lr_{lr}_scribble'
     # TRAINING CODE
     pbar = tqdm(range(iterations))
     for i in pbar:
@@ -202,7 +213,8 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         t_enc_ddpm = torch.randint(og_num, og_num_lim, (1,), device=devices[0])
 
         start_code = torch.randn((1, 4, 64, 64)).to(devices[0])
-
+        
+        model_orig.eval()
         with torch.no_grad():
             # generate an image with the concept from ESD model
             z = quick_sample_till_t(start_guidance, start_code, int(t_enc)) # emb_p seems to work better instead of emb_0
@@ -213,20 +225,12 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
             guess_mode = False
             n_samples=1
-            low_threshold = 100
-            high_threshold = 200
             
             # get Un-conditional scores from frozen model at time step t and image z
             unprompt = ""
             uncond_img = load_image_as_array("unconditional.png")
             uncond_img = resize_image(HWC3(uncond_img), image_size)
             
-            h, w = image_size, image_size
-
-            # uncond_detected_map = np.zeros_like(uncond_img, dtype=np.uint8)
-            # uncond_detected_map[np.min(uncond_img, axis=2) < 127] = 255
-            # uncond_detected_map = apply_canny(uncond_img, low_threshold, high_threshold)
-            # uncond_detected_map = HWC3(uncond_detected_map)
             uncond_detected_map = np.zeros_like(uncond_img, dtype=np.uint8)
             uncond_detected_map[np.min(uncond_img, axis=2) < 127] = 255
 
@@ -237,19 +241,12 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             uncond = {"c_concat": [uncond_control], "c_crossattn": [model_orig.get_learned_conditioning([unprompt + ', ' + a_prompt] * n_samples)]}
             model_orig.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
             e_0 = model_orig.apply_model(z.to(devices[1]), t_enc_ddpm.to(devices[1]), uncond)
-            # print("shape of e_0: ", e_0.shape)
             
             # get Conditional scores from frozen model at time step t and image z
             cprompt = prompt
             cond_img = load_image_as_array(erase_condition_image)
             cond_img = resize_image(HWC3(cond_img), image_size)
             
-            h, w = image_size, image_size
-
-            # cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
-            # cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
-            # cond_detected_map = apply_canny(cond_img, low_threshold, high_threshold)
-            # cond_detected_map = HWC3(cond_detected_map)
             cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
             cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
 
@@ -260,20 +257,13 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             cond = {"c_concat": [cond_control], "c_crossattn": [model_orig.get_learned_conditioning([cprompt + ', ' + a_prompt] * 1)]}
             model_orig.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
             e_p = model_orig.apply_model(z.to(devices[1]), t_enc_ddpm.to(devices[1]), cond)
-            # print("shape of e_p: ", e_p.shape)
             
         # breakpoint()
         # get conditional score from ESD model
         e_prompt = prompt
         e_cond_img = load_image_as_array(erase_condition_image)
         e_cond_img = resize_image(HWC3(e_cond_img), image_size)
-        
-        h, w = image_size, image_size
 
-        # e_cond_detected_map = np.zeros_like(e_cond_img, dtype=np.uint8)
-        # e_cond_detected_map[np.min(e_cond_img, axis=2) < 127] = 255
-        # e_cond_detected_map = apply_canny(e_cond_img, low_threshold, high_threshold)
-        # e_cond_detected_map = HWC3(e_cond_detected_map)
         e_cond_detected_map = np.zeros_like(e_cond_img, dtype=np.uint8)
         e_cond_detected_map[np.min(e_cond_img, axis=2) < 127] = 255
 
@@ -284,7 +274,6 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         e_cond = {"c_concat": [e_cond_control], "c_crossattn": [model.get_learned_conditioning([e_prompt + ', ' + a_prompt] * 1)]}
         model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
         e_n = model.apply_model(z.to(devices[0]), t_enc_ddpm.to(devices[0]), e_cond)
-        # print("shape of e_n: ", e_n.shape)
         
         e_0.requires_grad = False
         e_p.requires_grad = False
@@ -296,6 +285,9 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         pbar.set_postfix({"loss": loss.item()})
         history.append(loss.item())
         opt.step()
+        
+        torch.cuda.empty_cache()
+
         # save checkpoint and loss curve
         if (i+1) % 500 == 0 and i+1 != iterations and i+1>= 500:
             save_model(model, name, i-1, save_compvis=True, save_diffusers=False)
@@ -308,31 +300,6 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
     save_model(model, name, None, save_compvis=True, save_diffusers=True, compvis_config_file=config_path, diffusers_config_file=diffusers_config_path)
     save_history(losses, name, word_print)
 
-def save_model(model, name, num, compvis_config_file=None, diffusers_config_file=None, device='cpu', save_compvis=True, save_diffusers=True):
-    # SAVE MODEL
-
-#     PATH = f'{FOLDER}/{model_type}-word_{word_print}-method_{train_method}-sg_{start_guidance}-ng_{neg_guidance}-iter_{i+1}-lr_{lr}-startmodel_{start_model}-numacc_{numacc}.pt'
-
-    folder_path = f'models/{name}'
-    os.makedirs(folder_path, exist_ok=True)
-    if num is not None:
-        path = f'{folder_path}/{name}-epoch_{num}.pt'
-    else:
-        path = f'{folder_path}/{name}.pt'
-    if save_compvis:
-        print("saving compvis format")
-        torch.save(model.state_dict(), path)
-
-    if save_diffusers:
-        print('Saving Model in Diffusers Format')
-        savemodelDiffusers(name, compvis_config_file, diffusers_config_file, device=device )
-
-def save_history(losses, name, word_print):
-    folder_path = f'models/{name}'
-    os.makedirs(folder_path, exist_ok=True)
-    with open(f'{folder_path}/loss.txt', 'w') as f:
-        f.writelines([str(i) for i in losses])
-    plot_loss(losses,f'{folder_path}/loss.png' , word_print, n=3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
