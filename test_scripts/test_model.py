@@ -29,13 +29,13 @@ unconditional_guidance_scale = 7
 res = 512
 
 # Configs
-# resume_path = '/notebooks/erase/stable-diffusion/models/ldm/controlnet_scribble/control_sd15_scribble.pth' # your checkpoint path
-resume_path = "/notebooks/erase/stable-diffusion/models/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt"
+resume_path = "/root/Steering-Diffusion/models/ldm/controlnet_scribble/control_sd15_scribble.pth" # your checkpoint path
+# resume_path = "/root/Steering-Diffusion/models/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt"
 N = 1
 ddim_steps = 50
 
 
-model = create_model('/notebooks/erase/stable-diffusion/controlnet_files/cldm_v15.yaml').cpu()
+model = create_model('/root/Steering-Diffusion/configs/controlnet/cldm_v15.yaml').cpu()
 model.load_state_dict(load_state_dict(resume_path, location='cuda'), strict=False)
 model = model.cuda()
 sampler = DDIMSampler(model)
