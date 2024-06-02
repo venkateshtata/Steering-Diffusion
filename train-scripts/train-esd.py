@@ -10,8 +10,13 @@ from convertModels import savemodelDiffusers
 from cldm.model import create_model, load_state_dict
 from cldm.ddim_hacked import DDIMSampler
 from annotator.util import resize_image, HWC3
+from annotator.hed import HEDdetector, nms
+import cv2
+
 import einops
 from pytorch_lightning import seed_everything
+
+apply_hed = HEDdetector()
 
 
 
@@ -73,9 +78,18 @@ def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=N
     # For the conditional image init
     cond_img = load_image_as_array(erase_condition_image)
     cond_img = resize_image(HWC3(cond_img), h)
+    
+    cond_detected_map = apply_hed(cond_img)
+    cond_detected_map = HWC3(cond_detected_map)
+    cond_detected_map = resize_image(cond_detected_map, h)
+    H, W, C = cond_detected_map.shape
 
-    cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
-    cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
+    cond_detected_map = cv2.resize(cond_detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+    cond_detected_map = nms(cond_detected_map, 127, 3.0)
+    cond_detected_map = cv2.GaussianBlur(cond_detected_map, (0, 0), 3.0)
+    cond_detected_map[cond_detected_map > 4] = 255
+    cond_detected_map[cond_detected_map < 255] = 0
+
 
     cond_control = torch.from_numpy(cond_detected_map.copy()).float().cuda() / 255.0
     cond_control = torch.stack([cond_control for _ in range(n_samples)], dim=0)
@@ -94,7 +108,7 @@ def sample_model(model, sampler, h, w, ddim_steps, scale, ddim_eta, start_code=N
 
         model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
 
-        samples_ddim, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=7.0, unconditional_conditioning=un_cond)
+        samples_ddim, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=7.0, unconditional_conditioning=None)
 
     if log_every_t is not None:
         return samples_ddim, inters
@@ -313,7 +327,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', help='learning rate used to train', type=int, required=False, default=1e-5)
     parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/controlnet/cldm_v15.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/controlnet_canny/control_sd15_canny.pth')
-    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='/workspace/control_sd15_scribble.pth')
+    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='/notebooks/Steering-Diffusion/models/control.pth')
     # parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/stable-diffusion/v1-inference.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/stable-diffusion-v1/sd-v1-4-full-ema.ckpt')
     parser.add_argument('--diffusers_config_path', help='diffusers unet config json path', type=str, required=False, default='diffusers_unet_config.json')
