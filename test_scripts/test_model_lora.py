@@ -13,6 +13,9 @@ import random
 from pytorch_lightning import seed_everything
 from annotator.canny import CannyDetector
 
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
+
+
 apply_canny = CannyDetector()
 
 def load_image_as_array(image_path):
@@ -72,26 +75,25 @@ cond_control = torch.from_numpy(cond_detected_map.copy()).float().cuda() / 255.0
 cond_control = torch.stack([cond_control for _ in range(n_samples)], dim=0)
 cond_control = einops.rearrange(cond_control, 'b h w c -> b c h w').clone()
 
-seed = random.randint(0, 65535)
-seed_everything(0)
-
-cond = {"c_concat": [cond_control], "c_crossattn": [model.get_learned_conditioning([prompt + ', ' + a_prompt] * n_samples)]}
-un_cond = {"c_concat": None if guess_mode else [cond_control], "c_crossattn": [model.get_learned_conditioning([n_prompt] * n_samples)]}
-
-shape = (4, h//8, w//8)
-
-model.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
-
-samples, inters = sampler.sample(ddim_steps, n_samples, shape, cond, verbose=False, eta=0.0, unconditional_guidance_scale=unconditional_guidance_scale, unconditional_conditioning=un_cond)
+from diffusers import StableDiffusionImg2ImgPipeline
+import torch
+from PIL import Image
 
 
-print("samples: ", samples.shape)
-x_samples = model.decode_first_stage(samples)
-x_samples = x_samples.squeeze(0)
-x_samples = (x_samples + 1.0) / 2.0
-x_samples = x_samples.transpose(0, 1).transpose(1, 2)
-x_samples = x_samples.cpu().numpy()
-x_samples = (x_samples * 255).astype(np.uint8)
+init_image = cond_img
 
-image_name = output_img_path.split('/')[-1]
-Image.fromarray(x_samples).save('../outputs/' + image_name)
+# pipe = StableDiffusionImg2ImgPipeline.from_pretrained("/root/Steering-Diffusion/models/test-compvis-word_bird-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble/test-diffusers-word_bird-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt", torch_dtype=torch.float16).to(
+#     "cuda"
+# )
+
+prompt = "fish"
+torch.manual_seed(1)
+
+
+# controlnet = ControlNetModel.from_pretrained("/root/Steering-Diffusion/configs/controlnet/cldm_v15.yaml")
+pipe = StableDiffusionControlNetPipeline.from_single_file("/root/Steering-Diffusion/models/test-compvis-word_bird-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble/test-diffusers-word_bird-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt")
+
+
+# image = pipe(prompt=prompt, image=init_image, strength=0.75, guidance_scale=7.5).images[0]
+
+print("loaded")
