@@ -28,7 +28,7 @@ def load_model_from_config(config, ckpt, device="cpu", verbose=False):
     sd_locked = True
     only_mid_control = False
     model = create_model(config).to(device)
-    model.load_state_dict(load_state_dict(ckpt, location='cuda'))
+    model.load_state_dict(load_state_dict(ckpt, location='cuda'), strict=False)
     model.learning_rate = learning_rate
     model.sd_locked = sd_locked
     model.only_mid_control = only_mid_control
