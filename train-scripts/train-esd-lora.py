@@ -13,7 +13,7 @@ from annotator.util import resize_image, HWC3
 import einops
 from pytorch_lightning import seed_everything
 
-from lora_diffusion import inject_trainable_lora, extract_lora_ups_down
+from lora_diffusion import inject_trainable_lora, extract_lora_ups_down, save_lora_weight
 
 
 
@@ -303,9 +303,12 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             save_history(losses, name, word_print)
 
     model.eval()
+    
+    save_lora_weight(model, "lora_weight.pt")
+    print("Lora Weights Saved!")
 
-    save_model(model, name, None, save_compvis=True, save_diffusers=True, compvis_config_file=config_path, diffusers_config_file=diffusers_config_path)
-    save_history(losses, name, word_print)
+    # save_model(model, name, None, save_compvis=True, save_diffusers=True, compvis_config_file=config_path, diffusers_config_file=diffusers_config_path)
+    # save_history(losses, name, word_print)
 
 
 if __name__ == '__main__':
