@@ -204,8 +204,7 @@ class ControlNet(nn.Module):
                                 use_new_attention_order=use_new_attention_order,
                             ) if not use_spatial_transformer else SpatialTransformer(
                                 ch, num_heads, dim_head, depth=transformer_depth, context_dim=context_dim,
-                                disable_self_attn=disabled_sa, use_linear=use_linear_in_transformer,
-                                use_checkpoint=use_checkpoint
+                                disable_self_attn=disabled_sa
                             )
                         )
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
@@ -263,8 +262,7 @@ class ControlNet(nn.Module):
                 use_new_attention_order=use_new_attention_order,
             ) if not use_spatial_transformer else SpatialTransformer(  # always uses a self-attn
                 ch, num_heads, dim_head, depth=transformer_depth, context_dim=context_dim,
-                disable_self_attn=disable_middle_self_attn, use_linear=use_linear_in_transformer,
-                use_checkpoint=use_checkpoint
+                disable_self_attn=disable_middle_self_attn
             ),
             ResBlock(
                 ch,
