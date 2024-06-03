@@ -16,5 +16,5 @@ def load_image_details(image_path):
 
 # Example usage
 image_path = 'path/to/your/image.jpg'
-load_image_details(image_path)
+load_image_details(""image_path)
 

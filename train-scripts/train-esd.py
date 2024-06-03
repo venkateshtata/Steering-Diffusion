@@ -244,9 +244,18 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             unprompt = ""
             uncond_img = load_image_as_array("unconditional.png")
             uncond_img = resize_image(HWC3(uncond_img), image_size)
-            
-            uncond_detected_map = np.zeros_like(uncond_img, dtype=np.uint8)
-            uncond_detected_map[np.min(uncond_img, axis=2) < 127] = 255
+
+            uncond_detected_map = apply_hed(uncond_img)
+            uncond_detected_map = HWC3(uncond_detected_map)
+            uncond_detected_map = resize_image(uncond_detected_map, image_size)
+            H, W, C = uncond_detected_map.shape
+
+            uncond_detected_map = cv2.resize(uncond_detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+            uncond_detected_map = nms(uncond_detected_map, 127, 3.0)
+            uncond_detected_map = cv2.GaussianBlur(uncond_detected_map, (0, 0), 3.0)
+            uncond_detected_map[uncond_detected_map > 4] = 255
+            uncond_detected_map[uncond_detected_map < 255] = 0
+
 
             uncond_control = torch.from_numpy(uncond_detected_map.copy()).float().cuda() / 255.0
             uncond_control = torch.stack([uncond_control for _ in range(n_samples)], dim=0)
@@ -260,9 +269,18 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             cprompt = prompt
             cond_img = load_image_as_array(erase_condition_image)
             cond_img = resize_image(HWC3(cond_img), image_size)
-            
-            cond_detected_map = np.zeros_like(cond_img, dtype=np.uint8)
-            cond_detected_map[np.min(cond_img, axis=2) < 127] = 255
+
+            cond_detected_map = apply_hed(cond_img)
+            cond_detected_map = HWC3(cond_detected_map)
+            cond_detected_map = resize_image(cond_detected_map, image_size)
+            H, W, C = cond_detected_map.shape
+
+            cond_detected_map = cv2.resize(cond_detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+            cond_detected_map = nms(cond_detected_map, 127, 3.0)
+            cond_detected_map = cv2.GaussianBlur(cond_detected_map, (0, 0), 3.0)
+            cond_detected_map[cond_detected_map > 4] = 255
+            cond_detected_map[cond_detected_map < 255] = 0
+
 
             cond_control = torch.from_numpy(cond_detected_map.copy()).float().cuda() / 255.0
             cond_control = torch.stack([cond_control for _ in range(n_samples)], dim=0)
@@ -278,8 +296,17 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         e_cond_img = load_image_as_array(erase_condition_image)
         e_cond_img = resize_image(HWC3(e_cond_img), image_size)
 
-        e_cond_detected_map = np.zeros_like(e_cond_img, dtype=np.uint8)
-        e_cond_detected_map[np.min(e_cond_img, axis=2) < 127] = 255
+        e_cond_detected_map = apply_hed(e_cond_img)
+        e_cond_detected_map = HWC3(e_cond_detected_map)
+        e_cond_detected_map = resize_image(e_cond_detected_map, image_size)
+        H, W, C = e_cond_detected_map.shape
+
+        e_cond_detected_map = cv2.resize(e_cond_detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+        e_cond_detected_map = nms(e_cond_detected_map, 127, 3.0)
+        e_cond_detected_map = cv2.GaussianBlur(e_cond_detected_map, (0, 0), 3.0)
+        e_cond_detected_map[e_cond_detected_map > 4] = 255
+        e_cond_detected_map[e_cond_detected_map < 255] = 0
+
 
         e_cond_control = torch.from_numpy(e_cond_detected_map.copy()).float().cuda() / 255.0
         e_cond_control = torch.stack([e_cond_control for _ in range(n_samples)], dim=0)

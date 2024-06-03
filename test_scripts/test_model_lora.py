@@ -10,6 +10,8 @@ from annotator.hed import HEDdetector, nms
 import numpy as np
 import cv2
 
+class_name = "airplane"
+
 apply_hed = HEDdetector()
 
 def load_image_as_array(image_path):
@@ -18,7 +20,7 @@ def load_image_as_array(image_path):
         image_array = np.array(img)
         return image_array
 
-image = load_image_as_array("/notebooks/Steering-Diffusion/test_input_images/airplane_sketch.png")
+image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{class_name}_sketch.png')
 
 
 input_image = HWC3(image)
@@ -41,11 +43,11 @@ control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
 
 controlnet = ControlNetModel.from_pretrained(
-    "/notebooks/Steering-Diffusion/models/diff_models/compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble", torch_dtype=torch.float16
+    "/notebooks/Steering-Diffusion/models/diff_models/test-compvis-word_airplane-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble"
 )
 
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, safety_checker=None, torch_dtype=torch.float16
+    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, safety_checker=None
 )
 
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
@@ -55,6 +57,11 @@ pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 
 pipe.enable_model_cpu_offload()
 
-image = pipe("airplane", control, num_inference_steps=50).images[0]
+negative_prompt = "worst quality, low quality, noisy"
 
-image.save('airplane_scribble_out.png')
+
+
+
+image = pipe(class_name, control, num_inference_steps=50, guidance_scale=7, negative_prompt=negative_prompt).images[0]
+
+image.save(f'analysis_results_lora/{class_name}_scribble_defaultmodel_no_uncond.png')
