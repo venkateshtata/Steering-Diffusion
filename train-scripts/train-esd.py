@@ -265,6 +265,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
             uncond = {"c_concat": [uncond_control], "c_crossattn": [model_orig.get_learned_conditioning([unprompt + ', ' + a_prompt] * n_samples)]}
             model_orig.control_scales = [1 * (0.825 ** float(12 - i)) for i in range(13)] if guess_mode else ([1.0] * 13)
             e_0 = model_orig.apply_model(z.to(devices[1]), t_enc_ddpm.to(devices[1]), uncond)
+            print("e_0 shape: ", e_0.shape)
             
             # get Conditional scores from frozen model at time step t and image z
             cprompt = prompt
