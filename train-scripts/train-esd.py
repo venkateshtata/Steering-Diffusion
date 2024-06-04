@@ -204,7 +204,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         quick_sample_till_t = lambda s, code, t: sample_model(model, sampler,
                                                                      image_size, image_size, ddim_steps, s, ddim_eta,
                                                                      start_code=code, till_T=t, verbose=False)
-
+        
     model.train()
     losses = []
     opt = torch.optim.Adam(parameters, lr=lr)
@@ -232,6 +232,7 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         with torch.no_grad():
             # generate an image with the concept from ESD model
             z = quick_sample_till_t(start_guidance, start_code, int(t_enc)) # emb_p seems to work better instead of emb_0
+            print("z shape: ", z.shape)
             # print("shape of z: ", z.shape)
             
             #Get outputs from frozen model
@@ -352,9 +353,9 @@ if __name__ == '__main__':
     parser.add_argument('--negative_guidance', help='guidance of negative training used to train', type=float, required=False, default=1)
     parser.add_argument('--iterations', help='iterations used to train', type=int, required=False, default=500)
     parser.add_argument('--lr', help='learning rate used to train', type=int, required=False, default=1e-5)
-    parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/controlnet/cldm_v15.yaml')
+    parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='./configs/controlnet/cldm_v15.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/controlnet_canny/control_sd15_canny.pth')
-    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='/notebooks/Steering-Diffusion/models/control.pth')
+    parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='/workspace/control_sd15_scribble.pth')
     # parser.add_argument('--config_path', help='config path for stable diffusion v1-4 inference', type=str, required=False, default='configs/stable-diffusion/v1-inference.yaml')
     # parser.add_argument('--ckpt_path', help='ckpt path for stable diffusion v1-4', type=str, required=False, default='models/ldm/stable-diffusion-v1/sd-v1-4-full-ema.ckpt')
     parser.add_argument('--diffusers_config_path', help='diffusers unet config json path', type=str, required=False, default='diffusers_unet_config.json')
