@@ -42,12 +42,10 @@ control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
 
 
-controlnet = ControlNetModel.from_pretrained(
-    "/notebooks/Steering-Diffusion/models/diff_models/test-compvis-word_airplane-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble"
-)
+controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/models/diff_models/test-compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble/")
 
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, safety_checker=None
+    "CompVis/stable-diffusion-v1-4", controlnet=controlnet, safety_checker=None, guess_mode=False
 )
 
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)

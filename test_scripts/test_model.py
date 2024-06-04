@@ -24,7 +24,7 @@ def load_image_as_array(image_path):
         return image_array
 
 
-object_class = "fish"
+object_class = "cat"
 input_type = "sketch"
 model_used = "scribble"
 unconditional_guidance_scale = 7
@@ -32,7 +32,7 @@ res = 512
 
 # Configs
 # resume_path = '/notebooks/Steering-Diffusion/models/control.pth' # default cehckpoint
-resume_path = "/notebooks/Steering-Diffusion/models/test-compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble/test-compvis-word_airplane-method_notime-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt"
+resume_path = "/notebooks/Steering-Diffusion/models/test-compvis-word_airplane-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble/test-compvis-word_airplane-method_full-sg_3-ng_1-iter_500-lr_1e-05_scribble.pt"
 N = 1
 ddim_steps = 50
 
@@ -41,7 +41,7 @@ model = create_model('/notebooks/Steering-Diffusion/configs/controlnet/cldm_v15.
 model.load_state_dict(load_state_dict(resume_path, location='cuda'), strict=False)
 model = model.cuda()
 sampler = DDIMSampler(model)
-output_img_path = f'{object_class}-prompt_{object_class}-{input_type}_{unconditional_guidance_scale}-gs_{model_used}-notime-with_uncond.png'
+output_img_path = f'{object_class}-prompt_{object_class}-{input_type}_{unconditional_guidance_scale}-gs_{model_used}-full-with_uncond.png'
 
 
 a_prompt = "best quality, extremely detailed"
@@ -99,4 +99,4 @@ x_samples = x_samples.cpu().numpy()
 x_samples = (x_samples * 255).astype(np.uint8)
 
 image_name = output_img_path.split('/')[-1]
-Image.fromarray(x_samples).save("analysis_results/notime_airplane_erased/"+image_name)
+Image.fromarray(x_samples).save("analysis_results/full_airplane_erased/"+image_name)
