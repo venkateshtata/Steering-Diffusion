@@ -3,25 +3,26 @@ from PIL import Image
 import os
 from tqdm import tqdm
 import numpy as np
-import matplotlib.pyplot as plt
-import random
-import argparse
-from convertModels import savemodelDiffusers
-from cldm.model import create_model, load_state_dict
-from cldm.ddim_hacked import DDIMSampler
 from annotator.util import resize_image, HWC3
 from annotator.hed import HEDdetector, nms
-# from controlnet_aux import HEDdetector
 from diffusers.utils import load_image
 import cv2
 import einops
 from pytorch_lightning import seed_everything
-from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, AutoencoderKL
-from diffusers import ControlNetModel, StableDiffusionControlNetPipeline
-import torchvision
+from diffusers import ControlNetModel, AutoencoderKL, StableDiffusionControlNetPipeline
 import torchvision.transforms as transforms 
 from transformers import CLIPTextModel, CLIPTokenizer
-from safetensors.torch import save_file, load_file
+from safetensors.torch import save_file
+
+
+ddim_steps = 50
+iterations = 1000
+class_name = "airplane"
+train_method = "full" # "selfattn", "xattn", "full", "notime", "xlayer", "selflayer"
+
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 apply_hed = HEDdetector()
 
@@ -32,13 +33,10 @@ def load_image_as_array(image_path):
         return image_array
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to("cuda:0", torch.float16)
+text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float16)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
-ddim_steps = 50
-iterations = 500
+
 
 def move_to_device(batch_encoding, device):
     return {key: tensor.to(device) if tensor.dtype == torch.int64 else tensor.to(device, torch.float16) for key, tensor in batch_encoding.items()}
@@ -49,9 +47,7 @@ def encode_image(image, vae):
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5])
     ])
-    print("vae.device: ", vae.device)
     image_tensor = preprocess(image).unsqueeze(0).to(vae.device, torch.float16)
-    print("image tensor obtained")
     vae.eval()
     with torch.no_grad():
 
@@ -71,7 +67,7 @@ def diffuse_to_random_timestep(latent_vector, timesteps, t, device):
     return latent_noisy
 
 @torch.no_grad()
-def sampler(model_name="CompVis/stable-diffusion-v1-4", size=512, image_path="test_input_images/airplane_sketch.png", t=1):
+def sampler(model_name="CompVis/stable-diffusion-v1-4", size=512, image_path=None, t=1):
 
     # image = load_image(image_path)
     # hed = HEDdetector.from_pretrained('lllyasviel/ControlNet')
@@ -93,7 +89,7 @@ def sampler(model_name="CompVis/stable-diffusion-v1-4", size=512, image_path="te
     control = torch.stack([control for _ in range(1)], dim=0)
     erase_condition_image = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
-    vae = AutoencoderKL.from_pretrained(model_name, subfolder="vae").to("cuda:0", torch.float16)
+    vae = AutoencoderKL.from_pretrained(model_name, subfolder="vae").to(device, torch.float16)
 
     preprocess = transforms.Compose([
         transforms.Resize((size, size)),
@@ -105,26 +101,15 @@ def sampler(model_name="CompVis/stable-diffusion-v1-4", size=512, image_path="te
 
     # Encode the condition image to get the latent vector
     with torch.no_grad():
-        latent_vector = vae.encode(erase_condition_image.to("cuda:0", torch.float16)).latent_dist.sample() * 0.18215
+        latent_vector = vae.encode(erase_condition_image.to(device, torch.float16)).latent_dist.sample() * 0.18215
 
-    latent_samples = diffuse_to_random_timestep(latent_vector, ddim_steps, t, device="cuda:0")
+    latent_samples = diffuse_to_random_timestep(latent_vector, ddim_steps, t, device=device)
 
     return latent_samples
 
 
 def apply_unet_model(unet, x_noisy, t, cond):
-    """
-    Apply the UNet model to predict the noise for a given noisy latent vector and timestep.
     
-    Args:
-        unet (torch.nn.Module): The UNet model.
-        x_noisy (torch.Tensor): The noisy latent vector.
-        t (torch.Tensor): The current timestep.
-        cond (dict): Conditioning inputs, including 'c_crossattn' and 'c_concat'.
-
-    Returns:
-        torch.Tensor: The predicted noise.
-    """
     assert isinstance(cond, dict)
 
     # Concatenate text conditioning inputs
@@ -143,12 +128,12 @@ def apply_unet_model(unet, x_noisy, t, cond):
 
 model_name = "CompVis/stable-diffusion-v1-4"
 generator = torch.manual_seed(0)
-condition_image = "test_input_images/airplane_sketch.png"
+condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 
 # samples = sampler(model_name, 512)
 
-class_name = "airplane"
+
 
 controlnet_orig = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, use_safetensors=True)
 controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, use_safetensors=True)
@@ -165,17 +150,13 @@ model = StableDiffusionControlNetPipeline.from_pretrained(
 for param in model_orig.unet.parameters():
     param.requires_grad = False
 
-
-# Define the train method
-train_method = 'notime'  # Change this to your desired training method
 parameters = []
 
 # Iterate through model parameters based on the training method
 for name, param in model.controlnet.named_parameters():
     if train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
-            print("name: ", name)
-            
+            print("noxattn")
         else:
             parameters.append(param)
     elif train_method == 'selfattn':
@@ -196,7 +177,7 @@ for name, param in model.controlnet.named_parameters():
     elif train_method == 'selflayer':
         if 'attn1' in name:
             if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
-                print(name)
+                # print(name)
                 parameters.append(param)
 
 # Set the model to training mode
@@ -215,6 +196,7 @@ for i in pbar:
         optimizer.zero_grad()
 
         t_enc = torch.randint(ddim_steps, (1,), device=device)
+        
         # time step from 1000 to 0 (0 being good)
         og_num = round((int(t_enc)/ddim_steps)*1000)
         og_num_lim = round((int(t_enc+1)/ddim_steps)*1000)
@@ -232,43 +214,44 @@ for i in pbar:
 
             # Get Unconditional scores from frozen model at timestep t and input z
             prompt = ""
-            latent_uncondition_image = encode_image(load_image(uncondition_image), model_orig.vae.to("cuda:0", torch.float16))
+            latent_uncondition_image = encode_image(load_image(uncondition_image), model_orig.vae.to(device, torch.float16))
             text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-            text_inputs = move_to_device(text_inputs, "cuda:0")
+            text_inputs = move_to_device(text_inputs, device)
             text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state
 
             uncond = {
-                'c_crossattn': [text_embeddings],  # Replace with your actual text embeddings
-                'c_concat': [latent_uncondition_image]  # Include the image latent vector as conditional input
+                'c_crossattn': [text_embeddings],
+                'c_concat': [latent_uncondition_image]
             }
-            e_0 = apply_unet_model(model_orig.unet.to("cuda:0", torch.float16), z.to("cuda:0", torch.float16), t.to("cuda:0", torch.float16), uncond)
+            e_0 = apply_unet_model(model_orig.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), uncond)
 
 
             # Get Conditional scores from frozen model at timestep t and input z
-            prompt = "airplane"
-            latent_condition_image = encode_image(load_image(condition_image), model_orig.vae.to("cuda:0", torch.float16))
+            prompt = class_name
+            latent_condition_image = encode_image(load_image(condition_image), model_orig.vae.to(device, torch.float16))
             text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-            text_inputs = move_to_device(text_inputs, "cuda:0")
+            text_inputs = move_to_device(text_inputs, device)
             text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state
 
             cond = {
-                'c_crossattn': [text_embeddings],  # Replace with your actual text embeddings
-                'c_concat': [latent_condition_image]  # Include the image latent vector as conditional input
+                'c_crossattn': [text_embeddings],
+                'c_concat': [latent_condition_image]
             }
-            e_p = apply_unet_model(model_orig.unet.to("cuda:0", torch.float16), z, t, cond)
+            e_p = apply_unet_model(model_orig.unet.to(device, torch.float16), z, t, cond)
         
         # Get Conditional scores from model at timestep t and input z
-        prompt = "airplane"
-        latent_condition_image = encode_image(load_image(condition_image), model.vae.to("cuda:0", torch.float16))
+        prompt = class_name
+        latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16))
         text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-        text_inputs = move_to_device(text_inputs, "cuda:0")
+        text_inputs = move_to_device(text_inputs, device)
         text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state
 
         cond = {
-            'c_crossattn': [text_embeddings],  # Replace with your actual text embeddings
-            'c_concat': [latent_condition_image]  # Include the image latent vector as conditional input
+            'c_crossattn': [text_embeddings],
+            'c_concat': [latent_condition_image]
         }
-        e_n = apply_unet_model(model.unet.to("cuda:0", torch.float16), z.to("cuda:0", torch.float16), t.to("cuda:0", torch.float16), cond)
+        
+        e_n = apply_unet_model(model.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), cond)
 
         e_0.requires_grad = False
         e_p.requires_grad = False
@@ -284,20 +267,10 @@ for i in pbar:
 
 # Save the UNet model parameters
 model_save_path = "trained_model"
-# unet_save_path = os.path.join(model_save_path, "unet.safetensors")
-controlnet_save_path = os.path.join(model_save_path, "controlnet.safetensors")
-
-# Extract UNet parameters and save them using safetensors
-# unet_params = model.unet.state_dict()
-# save_file(unet_params, unet_save_path)
+controlnet_save_path = os.path.join(model_save_path, f'{class_name}_{train_method}_{iterations}.safetensors')
 
 controlnet_params = model.controlnet.state_dict()
 save_file(controlnet_params, controlnet_save_path)
 
 print(f"Controlnet parameters saved to {controlnet_save_path}")
-
-            
-
-            
-            
 
