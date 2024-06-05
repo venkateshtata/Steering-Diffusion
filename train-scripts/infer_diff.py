@@ -23,20 +23,23 @@ def encode_image(image, vae):
         latent_vector = vae.encode(image_tensor).latent_dist.sample() * 0.18215
     return latent_vector
 
-# Load the ControlNet parameters from safetensors file
-model_save_path = "/root/Steering-Diffusion/trained_model/"
-controlnet_save_path = os.path.join(model_save_path, "controlnet.safetensors")
-controlnet_params = load_file(controlnet_save_path)
+# Load the UNet parameters from safetensors file
+model_save_path = "/root/Steering-Diffusion/trained_model"
+unet_save_path = os.path.join(model_save_path, "unet.safetensors")
+unet_params = load_file(unet_save_path)
 
 # Create and load the ControlNet model
-controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16)
-controlnet.load_state_dict(controlnet_params)
+controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, safety_checker=None)
 controlnet.to("cuda:0")
 
-# Load the Stable Diffusion ControlNet Pipeline
+# Load the Stable Diffusion ControlNet Pipeline with a dummy UNet
 model = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16, use_safetensors=True
+    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16, use_safetensors=True, safety_checker=None
 ).to("cuda:0")
+
+# Load the UNet parameters into the model's UNet
+model.unet.load_state_dict(unet_params)
+print(f"UNet parameters loaded from {unet_save_path}")
 
 # Load the VAE and tokenizer
 vae = AutoencoderKL.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="vae").to("cuda:0", torch.float16)
@@ -65,8 +68,8 @@ def inference(prompt, condition_image_path):
     return generated_images
 
 # Perform inference
-prompt = "airplane"
-condition_image_path = "test_input_images/airplane_sketch.png"
+prompt = "cat"
+condition_image_path = "test_input_images/cat_sketch.png"
 generated_images = inference(prompt, condition_image_path)
 
 # Save or display the generated images

@@ -145,7 +145,7 @@ for param in model_orig.unet.parameters():
 
 
 # Define the train method
-train_method = 'selfattn'  # Change this to your desired training method
+train_method = 'notime'  # Change this to your desired training method
 parameters = []
 
 # Iterate through model parameters based on the training method
@@ -259,18 +259,16 @@ for i in pbar:
         optimizer.step()
         
 torch.cuda.empty_cache()
-        
-import torch
 
-# Save the ControlNet model parameters
+# Save the UNet model parameters
 model_save_path = "trained_model"
-controlnet_save_path = os.path.join(model_save_path, "controlnet.safetensors")
+unet_save_path = os.path.join(model_save_path, "unet.safetensors")
 
-# Extract ControlNet parameters and save them using safetensors
-controlnet_params = model.controlnet.state_dict()
-save_file(controlnet_params, controlnet_save_path)
+# Extract UNet parameters and save them using safetensors
+unet_params = model.unet.state_dict()
+save_file(unet_params, unet_save_path)
 
-print(f"ControlNet parameters saved to {controlnet_save_path}")
+print(f"UNet parameters saved to {unet_save_path}")
 
             
 
