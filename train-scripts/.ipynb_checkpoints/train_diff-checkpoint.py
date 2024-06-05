@@ -115,7 +115,7 @@ def apply_unet_model(unet, x_noisy, t, cond):
         cond_img = None
 
     # Apply the UNet model to predict the noise
-    eps = unet(x_noisy, t, encoder_hidden_states=cond_txt).sample
+    eps = unet(x_noisy, t, encoder_hidden_states=cond_txt, cross_attention_kwargs={"image_latents": cond_img}).sample
 
     return eps
 
