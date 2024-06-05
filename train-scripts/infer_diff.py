@@ -1,77 +1,83 @@
+from PIL import Image
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
 import torch
-from transformers import CLIPTextModel, CLIPTokenizer
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, AutoencoderKL
-import torchvision.transforms as transforms
+# from controlnet_aux import HEDdetector
 from diffusers.utils import load_image
-from safetensors.torch import load_file
-import os
+from diffusers import StableDiffusionControlNetImg2ImgPipeline, ControlNetModel, UniPCMultistepScheduler
+from diffusers import ControlNetModel, AutoencoderKL
+from diffusers.utils import load_image
+import numpy as np
+import torch
+import cv2
+from annotator.hed import HEDdetector, nms
+from annotator.util import HWC3
+from annotator.util import resize_image
+import einops
+from safetensors.torch import load_file as load_safetensors
 
-# Function to move batch encoding to device
-def move_to_device(batch_encoding, device):
-    return {key: tensor.to(device) if tensor.dtype == torch.int64 else tensor.to(device, torch.float16) for key, tensor in batch_encoding.items()}
+class_name = "airplane"
+apply_hed = HEDdetector()
 
-# Function to encode image
-def encode_image(image, vae):
-    preprocess = transforms.Compose([
-        transforms.Resize((512, 512)),  # Make sure the size is correct
-        transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5])
-    ])
-    image_tensor = preprocess(image).unsqueeze(0).to(vae.device, torch.float16)
-    vae.eval()
-    with torch.no_grad():
-        latent_vector = vae.encode(image_tensor).latent_dist.sample() * 0.18215
-    return latent_vector
+def load_image_as_array(image_path):
+    with Image.open(image_path) as img:
+        img = img.convert('RGB')
+        image_array = np.array(img)
+        return image_array
+image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{class_name}_sketch.png')
 
-# Load the UNet parameters from safetensors file
-model_save_path = "/root/Steering-Diffusion/trained_model"
-unet_save_path = os.path.join(model_save_path, "unet.safetensors")
-unet_params = load_file(unet_save_path)
+input_image = HWC3(image)
+detected_map = apply_hed(resize_image(input_image, 512))
+detected_map = HWC3(detected_map)
+img = resize_image(input_image, 512)
+H, W, C = img.shape
 
-# Create and load the ControlNet model
-controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, safety_checker=None)
-controlnet.to("cuda:0")
+detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+detected_map = nms(detected_map, 127, 3.0)
+detected_map = cv2.GaussianBlur(detected_map, (0, 0), 3.0)
+detected_map[detected_map > 4] = 255
+detected_map[detected_map < 255] = 0
 
-# Load the Stable Diffusion ControlNet Pipeline with a dummy UNet
-model = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16, use_safetensors=True, safety_checker=None
-).to("cuda:0")
+control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+control = torch.stack([control for _ in range(1)], dim=0)
+cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
-# Load the UNet parameters into the model's UNet
-model.unet.load_state_dict(unet_params)
-print(f"UNet parameters loaded from {unet_save_path}")
 
-# Load the VAE and tokenizer
-vae = AutoencoderKL.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="vae").to("cuda:0", torch.float16)
-text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to("cuda:0", torch.float16)
-tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+# Load ControlNet model and its components separately
+controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model/", safety_checker=None)
 
-# Define the function to perform inference
-def inference(prompt, condition_image_path):
-    # Load and encode the condition image
-    condition_image = load_image(condition_image_path)
-    latent_condition_image = encode_image(condition_image, vae)
+controlnet_state_dict = load_safetensors("/notebooks/Steering-Diffusion/trained_model/controlnet.safetensors")
+controlnet.load_state_dict(controlnet_state_dict)
 
-    # Tokenize and encode the prompt
-    text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-    text_inputs = move_to_device(text_inputs, "cuda:0")
-    text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state
 
-    # Create conditioning dictionary
-    cond = {
-        'c_crossattn': [text_embeddings],  # Replace with your actual text embeddings
-        'c_concat': [latent_condition_image]  # Include the image latent vector as conditional input
-    }
+# vae = torch.load("/notebooks/Steering-Diffusion/converted_model/vae.pth")
 
-    # Generate the image using the model
-    generated_images = model(prompt, image=condition_image, guidance_scale=7.5, num_inference_steps=50).images
-    return generated_images
+vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae")
+# Load the Stable Diffusion pipeline with ControlNet
+pipe = StableDiffusionControlNetPipeline.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    vae=vae,
+    controlnet=controlnet,
+    safety_checker=None
+)
 
-# Perform inference
-prompt = "cat"
-condition_image_path = "test_input_images/cat_sketch.png"
-generated_images = inference(prompt, condition_image_path)
+print("pipe keys: ", pipe)
 
-# Save or display the generated images
-for idx, image in enumerate(generated_images):
-    image.save(f"generated_image_{idx}.png")
+# Assign the loaded VAE and UNet to the pipeline
+# unet_state_dict = load_safetensors("/notebooks/Steering-Diffusion/trained_model/unet.safetensors")
+# pipe.unet.load_state_dict(unet_state_dict)
+
+# Speed up diffusion process with faster scheduler and memory optimization
+pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+pipe.enable_model_cpu_offload()
+
+# Generate image
+generator = torch.manual_seed(0)
+output_image = pipe(
+    class_name,
+    num_inference_steps=50,
+    generator=generator,
+    image=cond_control,
+).images[0]
+
+# Save output image
+output_image.save(f'{class_name}_scribble_out_defaultmodel.png')

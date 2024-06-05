@@ -10,8 +10,8 @@ from convertModels import savemodelDiffusers
 from cldm.model import create_model, load_state_dict
 from cldm.ddim_hacked import DDIMSampler
 from annotator.util import resize_image, HWC3
-# from annotator.hed import HEDdetector, nms
-from controlnet_aux import HEDdetector
+from annotator.hed import HEDdetector, nms
+# from controlnet_aux import HEDdetector
 from diffusers.utils import load_image
 import cv2
 import einops
@@ -23,6 +23,13 @@ import torchvision.transforms as transforms
 from transformers import CLIPTextModel, CLIPTokenizer
 from safetensors.torch import save_file, load_file
 
+apply_hed = HEDdetector()
+
+def load_image_as_array(image_path):
+    with Image.open(image_path) as img:
+        img = img.convert('RGB')
+        image_array = np.array(img)
+        return image_array
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -30,7 +37,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to("cuda:0", torch.float16)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
-model_name = "origin"
 ddim_steps = 50
 iterations = 500
 
@@ -65,11 +71,27 @@ def diffuse_to_random_timestep(latent_vector, timesteps, t, device):
     return latent_noisy
 
 @torch.no_grad()
-def sampler(model_name="runwayml/stable-diffusion-v1-5", size=512, image_path="test_input_images/airplane_sketch.png", t=1):
+def sampler(model_name="CompVis/stable-diffusion-v1-4", size=512, image_path="test_input_images/airplane_sketch.png", t=1):
 
-    image = load_image(image_path)
-    hed = HEDdetector.from_pretrained('lllyasviel/ControlNet')
-    erase_condition_image = hed(image, scribble=True)
+    # image = load_image(image_path)
+    # hed = HEDdetector.from_pretrained('lllyasviel/ControlNet')
+    # erase_condition_image = hed(image, scribble=True)
+    image = load_image_as_array(image_path)
+    input_image = HWC3(image)
+    detected_map = apply_hed(resize_image(input_image, 512))
+    detected_map = HWC3(detected_map)
+    img = resize_image(input_image, 512)
+    H, W, C = img.shape
+
+    detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+    detected_map = nms(detected_map, 127, 3.0)
+    detected_map = cv2.GaussianBlur(detected_map, (0, 0), 3.0)
+    detected_map[detected_map > 4] = 255
+    detected_map[detected_map < 255] = 0
+
+    control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+    control = torch.stack([control for _ in range(1)], dim=0)
+    erase_condition_image = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
     vae = AutoencoderKL.from_pretrained(model_name, subfolder="vae").to("cuda:0", torch.float16)
 
@@ -79,11 +101,11 @@ def sampler(model_name="runwayml/stable-diffusion-v1-5", size=512, image_path="t
         transforms.Normalize([0.5], [0.5])
     ])
 
-    image = preprocess(erase_condition_image).unsqueeze(0).to("cuda:0", torch.float16)
+    # image = preprocess(erase_condition_image).unsqueeze(0).to("cuda:0", torch.float16)
 
     # Encode the condition image to get the latent vector
     with torch.no_grad():
-        latent_vector = vae.encode(image.to("cuda:0", torch.float16)).latent_dist.sample() * 0.18215
+        latent_vector = vae.encode(erase_condition_image.to("cuda:0", torch.float16)).latent_dist.sample() * 0.18215
 
     latent_samples = diffuse_to_random_timestep(latent_vector, ddim_steps, t, device="cuda:0")
 
@@ -119,7 +141,7 @@ def apply_unet_model(unet, x_noisy, t, cond):
 
     return eps
 
-model_name = "runwayml/stable-diffusion-v1-5"
+model_name = "CompVis/stable-diffusion-v1-4"
 generator = torch.manual_seed(0)
 condition_image = "test_input_images/airplane_sketch.png"
 uncondition_image = "unconditional.png"
@@ -132,11 +154,11 @@ controlnet_orig = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-cann
 controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, use_safetensors=True)
 
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet_orig, torch_dtype=torch.float16,  use_safetensors=True
+    "CompVis/stable-diffusion-v1-4", controlnet=controlnet_orig, torch_dtype=torch.float16,  use_safetensors=True
 )
 
 model = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16,  use_safetensors=True
+    "CompVis/stable-diffusion-v1-4", controlnet=controlnet, torch_dtype=torch.float16,  use_safetensors=True
 )
 
 # Freeze the original model parameters
@@ -149,7 +171,7 @@ train_method = 'notime'  # Change this to your desired training method
 parameters = []
 
 # Iterate through model parameters based on the training method
-for name, param in model.unet.named_parameters():
+for name, param in model.controlnet.named_parameters():
     if train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
             print("name: ", name)
@@ -178,7 +200,7 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 # Set the model to training mode
-model.unet.train()
+model.controlnet.train()
 
 # Set up the optimizer and loss function
 lr = 1e-4  # Learning rate
@@ -257,18 +279,22 @@ for i in pbar:
         loss.backward()
         pbar.set_postfix({"loss": loss.item()})
         optimizer.step()
-        
-torch.cuda.empty_cache()
+
+# torch.cuda.empty_cache()
 
 # Save the UNet model parameters
 model_save_path = "trained_model"
-unet_save_path = os.path.join(model_save_path, "unet.safetensors")
+# unet_save_path = os.path.join(model_save_path, "unet.safetensors")
+controlnet_save_path = os.path.join(model_save_path, "controlnet.safetensors")
 
 # Extract UNet parameters and save them using safetensors
-unet_params = model.unet.state_dict()
-save_file(unet_params, unet_save_path)
+# unet_params = model.unet.state_dict()
+# save_file(unet_params, unet_save_path)
 
-print(f"UNet parameters saved to {unet_save_path}")
+controlnet_params = model.controlnet.state_dict()
+save_file(controlnet_params, controlnet_save_path)
+
+print(f"Controlnet parameters saved to {controlnet_save_path}")
 
             
 
