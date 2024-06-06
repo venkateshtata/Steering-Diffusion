@@ -10,7 +10,7 @@ from annotator.util import HWC3, resize_image
 import einops
 from safetensors.torch import load_file as load_safetensors
 
-class_name = "fish"
+class_name = "airplane"
 apply_hed = HEDdetector()
 
 def load_image_as_array(image_path):
@@ -51,7 +51,10 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
 )
 
 # Assign the loaded UNet weights to the pipeline
-# pipe.unet.load_state_dict(unet_state_dict)
+pipe.unet.load_state_dict(unet_state_dict, strict=False)
+
+# Print the first parameter to ensure weights are loaded correctly
+print(next(pipe.unet.parameters()).data)
 
 # Load the VAE model
 vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", safety_checker = None)

@@ -18,6 +18,10 @@ import random
 # Initialize HED detector
 apply_hed = HEDdetector()
 
+def check_tensor(tensor, name):
+    assert not torch.isnan(tensor).any(), f'{name} contains NaNs'
+    assert not torch.isinf(tensor).any(), f'{name} contains Infs'
+
 def load_image_as_array(image_path):
     with Image.open(image_path) as img:
         img = img.convert('RGB')
@@ -100,32 +104,41 @@ def sampler(pipeline, size, image_path, t):
         generator=generator
     ).images[0]
     
-    diffuse_to_random_timestep
-
     latent_vector = encode_image(load_image(image), pipeline.vae.to(device, torch.float16))
     
     noisy_latent_vector = diffuse_to_random_timestep(latent_vector, 50, t, device)
     
     return noisy_latent_vector.to(device, torch.float16)
 
-
 def apply_unet_model(unet, x_noisy, t, cond):
     cond_txt = torch.cat(cond['c_crossattn'], 1)
-    cond_img = torch.cat(cond['c_concat'], 1) if cond['c_concat'] is not None else None
+    
+    # Check inputs for NaNs
+    check_tensor(x_noisy, "x_noisy in apply_unet_model")
+    check_tensor(t, "t in apply_unet_model")
+    check_tensor(cond_txt, "cond_txt in apply_unet_model")
+    
+    # Forward pass through UNet
     eps = unet(x_noisy, t, encoder_hidden_states=cond_txt).sample
+
+    # Check for NaNs and print tensor stats
+    check_tensor(eps, "eps in apply_unet_model")
+    print_tensor_stats(eps, "eps in apply_unet_model")
+    
     return eps
+
 
 class_name = "fish"
 model_name = "CompVis/stable-diffusion-v1-4"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 
-controlnet_orig = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet_orig = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float16, device="cuda:0", use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
     model_name, controlnet=controlnet_orig, torch_dtype=torch.float16, use_safetensors=True, device="cuda:0", safety_checker = None
 )
 
-controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float16, device="cuda:0", use_safetensors=True, safety_checker = None)
 model = StableDiffusionControlNetPipeline.from_pretrained(
     model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float16, device="cuda:0", safety_checker = None
 )
@@ -170,9 +183,14 @@ model.to(device)
 # Set the model to training mode
 model.unet.train()
 
+torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
+
 # Set up the optimizer and loss function
-optimizer = torch.optim.Adam(parameters, lr=1e-4)
+optimizer = torch.optim.Adam(parameters, lr=1e-5)
 criteria = torch.nn.MSELoss()
+
+def print_tensor_stats(tensor, name):
+    print(f'{name} stats: min={tensor.min().item()}, max={tensor.max().item()}, mean={tensor.mean().item()}, std={tensor.std().item()}')
 
 pbar = tqdm(range(iterations))
 for _ in pbar:
@@ -182,57 +200,76 @@ for _ in pbar:
     og_num = round((int(t_enc) / ddim_steps) * 1000)
     og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
 
-    # Inside the training loop
     t = torch.randint(0, ddim_steps, (1,), device=device, dtype=torch.long)
 
     model.to("cuda:0")
     model_orig.to("cuda:0")
 
     with torch.no_grad():
-        
         z = sampler(model, 512, condition_image, t)
+        check_tensor(z, "z")
+        print_tensor_stats(z, "z")
 
         a_prompt = "best quality, extremely detailed"
 
-        # Unconditional scores (frozen model)
-        unprompt = "" + a_prompt
-        latent_uncondition_image = encode_image(load_image(uncondition_image), model.vae.to(device, torch.float16))
+        unprompt = " " + a_prompt
+        latent_uncondition_image = encode_image(load_image(uncondition_image), model.vae.to(device, torch.float16)).detach()
+        check_tensor(latent_uncondition_image, "latent_uncondition_image")
+        print_tensor_stats(latent_uncondition_image, "latent_uncondition_image")
         text_inputs = tokenizer(unprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
-        text_embeddings = text_encoder(text_inputs["input_ids"]).last_hidden_state
-        uncond = {'c_concat': [latent_uncondition_image],'c_crossattn': [text_embeddings]}
+        text_embeddings = text_encoder(text_inputs["input_ids"]).last_hidden_state.detach()
+        check_tensor(text_embeddings, "text_embeddings")
+        print_tensor_stats(text_embeddings, "text_embeddings")
+        uncond = {'c_concat': [latent_uncondition_image], 'c_crossattn': [text_embeddings]}
         e_0 = apply_unet_model(model_orig.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), uncond)
+        check_tensor(e_0, "e_0")
+        print_tensor_stats(e_0, "e_0")
 
-        # Conditional scores (frozen model)
-        cprompt = "fish " + a_prompt 
-        latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16))
+        cprompt = "fish " + a_prompt
+        latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16)).detach()
+        check_tensor(latent_condition_image, "latent_condition_image")
+        print_tensor_stats(latent_condition_image, "latent_condition_image")
         text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
-        text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state
+        text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
+        check_tensor(text_embeddings, "text_embeddings")
+        print_tensor_stats(text_embeddings, "text_embeddings")
         cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
         e_p = apply_unet_model(model_orig.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), cond)
+        check_tensor(e_p, "e_p")
+        print_tensor_stats(e_p, "e_p")
 
-    # Conditional scores (trainable model)
-    cprompt = "fish " + a_prompt 
-    latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16))
+    latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16)).detach()
+    check_tensor(latent_condition_image, "latent_condition_image")
+    print_tensor_stats(latent_condition_image, "latent_condition_image")
     text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
     text_inputs = move_to_device(text_inputs, device)
-    text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state
+    text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
     cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
-    e_p = apply_unet_model(model_orig.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), cond)
+    check_tensor(latent_condition_image, "latent_condition_image")
+    check_tensor(text_embeddings, "text_embeddings")
+
+    # Clamp and check for NaNs in e_n
     e_n = apply_unet_model(model.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), cond)
+    e_n = torch.clamp(e_n, -1, 1)
+    check_tensor(e_n, "e_n")
+    print_tensor_stats(e_n, "e_n")
 
     e_0 = e_0.detach()
     e_p = e_p.detach()
 
     loss = criteria(e_n, e_0 - (1 * (e_p - e_0)))
+    check_tensor(loss, "loss")
+
+    print("Loss: ", loss.item())
 
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
     pbar.set_postfix({"loss": loss.item()})
     optimizer.step()
 
     torch.cuda.empty_cache()
-
 
 # Save the trained model
 model_save_path = "trained_model"
