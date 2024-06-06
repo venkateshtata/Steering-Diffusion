@@ -1,24 +1,16 @@
 from PIL import Image
+from diffusers import StableDiffusionControlNetPipeline, UniPCMultistepScheduler, ControlNetModel
 import torch
-from diffusers import ControlNetModel, AutoencoderKL, UniPCMultistepScheduler, StableDiffusionControlNetPipeline
-from diffusers import ControlNetModel 
+from diffusers.utils import load_image
+from diffusers import AutoencoderKL
 import numpy as np
-import torch
 import cv2
 from annotator.hed import HEDdetector, nms
-from annotator.util import HWC3
-from annotator.util import resize_image
+from annotator.util import HWC3, resize_image
 import einops
 from safetensors.torch import load_file as load_safetensors
 
-test_class_name = "cat"
-ddim_steps = 50
-model_path = "trained_model/airplane_notime_1000.safetensors"
-
-erased_class = model_path.split("/")[-1].split(".")[0].split("_")[0]
-train_method = model_path.split("/")[-1].split(".")[0].split("_")[1]
-
-
+class_name = "fish"
 apply_hed = HEDdetector()
 
 def load_image_as_array(image_path):
@@ -27,7 +19,7 @@ def load_image_as_array(image_path):
         image_array = np.array(img)
         return image_array
 
-image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{test_class_name}_sketch.png')
+image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{class_name}_sketch.png')
 
 input_image = HWC3(image)
 detected_map = apply_hed(resize_image(input_image, 512))
@@ -45,35 +37,38 @@ control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
 control = torch.stack([control for _ in range(1)], dim=0)
 cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
-
 # Load ControlNet model and its components separately
-controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model/", safety_checker=None)
+controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny")
 
-controlnet_state_dict = load_safetensors(model_path)
-controlnet.load_state_dict(controlnet_state_dict)
-
-vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae")
+# Load the UNet model weights
+unet_state_dict = load_safetensors("")
 
 # Load the Stable Diffusion pipeline with ControlNet
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
-    vae=vae,
     controlnet=controlnet,
     safety_checker=None
 )
+
+# Assign the loaded UNet weights to the pipeline
+pipe.unet.load_state_dict(unet_state_dict)
+
+# Load the VAE model
+vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", safety_checker = None)
+pipe.vae = vae
 
 # Speed up diffusion process with faster scheduler and memory optimization
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 pipe.enable_model_cpu_offload()
 
 # Generate image
-generator = torch.manual_seed(42)
+generator = torch.manual_seed(0)
 output_image = pipe(
-    test_class_name,
-    num_inference_steps=ddim_steps,
+    class_name,
+    num_inference_steps=50,
     generator=generator,
     image=cond_control,
 ).images[0]
 
 # Save output image
-output_image.save(f'outputs/erased-{erased_class}_{train_method}_{test_class_name}.png')
+output_image.save(f'testing_outputs/{class_name}_scribble_unet-trained.png')
