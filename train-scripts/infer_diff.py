@@ -41,7 +41,7 @@ cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny")
 
 # Load the UNet model weights
-unet_state_dict = load_safetensors("")
+unet_state_dict = load_safetensors("/notebooks/Steering-Diffusion/trained_model/fish_xattn_500_unet.safetensors")
 
 # Load the Stable Diffusion pipeline with ControlNet
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
@@ -51,7 +51,7 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
 )
 
 # Assign the loaded UNet weights to the pipeline
-pipe.unet.load_state_dict(unet_state_dict)
+# pipe.unet.load_state_dict(unet_state_dict)
 
 # Load the VAE model
 vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", safety_checker = None)

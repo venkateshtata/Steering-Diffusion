@@ -99,10 +99,14 @@ def sampler(pipeline, size, image_path, t):
         image=control,
         generator=generator
     ).images[0]
+    
+    diffuse_to_random_timestep
 
-    latent_samples = encode_image(load_image(image), pipeline.vae.to(device, torch.float16))
-
-    return latent_samples.to(device, torch.float16)
+    latent_vector = encode_image(load_image(image), pipeline.vae.to(device, torch.float16))
+    
+    noisy_latent_vector = diffuse_to_random_timestep(latent_vector, 50, t, device)
+    
+    return noisy_latent_vector.to(device, torch.float16)
 
 
 def apply_unet_model(unet, x_noisy, t, cond):
