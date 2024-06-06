@@ -29,14 +29,14 @@ def load_image_as_array(image_path):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float16)
+text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
 ddim_steps = 50
 iterations = 500
 
 def move_to_device(batch_encoding, device):
-    return {key: tensor.to(device) if tensor.dtype == torch.int64 else tensor.to(device, torch.float16) for key, tensor in batch_encoding.items()}
+    return {key: tensor.to(device) if tensor.dtype == torch.int64 else tensor.to(device, torch.float32) for key, tensor in batch_encoding.items()}
 
 def encode_image(image, vae):
     preprocess = transforms.Compose([
@@ -44,7 +44,7 @@ def encode_image(image, vae):
         transforms.ToTensor(),
         transforms.Normalize([0.5], [0.5])
     ])
-    image_tensor = preprocess(image).unsqueeze(0).to(device, torch.float16)
+    image_tensor = preprocess(image).unsqueeze(0).to(device, torch.float32)
     vae.eval()
     with torch.no_grad():
         latent_vector = vae.encode(image_tensor).latent_dist.sample() * 0.18215
@@ -53,8 +53,8 @@ def encode_image(image, vae):
 def diffuse_to_random_timestep(latent_vector, timesteps, t, device):
     T = timesteps
     alpha = np.linspace(1, 0, T)
-    sqrt_alpha = torch.tensor(np.sqrt(alpha), device=device, dtype=torch.float16)
-    sqrt_one_minus_alpha = torch.tensor(np.sqrt(1 - alpha), device=device, dtype=torch.float16)
+    sqrt_alpha = torch.tensor(np.sqrt(alpha), device=device, dtype=torch.float32)
+    sqrt_one_minus_alpha = torch.tensor(np.sqrt(1 - alpha), device=device, dtype=torch.float32)
     noise = torch.randn_like(latent_vector)
     latent_noisy = sqrt_alpha[t] * latent_vector + sqrt_one_minus_alpha[t] * noise
     return latent_noisy
@@ -79,9 +79,9 @@ def sampler(pipeline, size, image_path, t):
     detected_map[detected_map > 4] = 255
     detected_map[detected_map < 255] = 0
 
-    control = torch.from_numpy(detected_map.copy()).float().to(device, torch.float16) / 255.0
+    control = torch.from_numpy(detected_map.copy()).float().to(device, torch.float32) / 255.0
     control = torch.stack([control for _ in range(n_samples)], dim=0)
-    control = einops.rearrange(control, 'b h w c -> b c h w').clone().to("cuda:0", torch.float16)
+    control = einops.rearrange(control, 'b h w c -> b c h w').clone().to("cuda:0", torch.float32)
 
     seed = random.randint(0, 65535)
     seed_everything(seed)
@@ -104,11 +104,11 @@ def sampler(pipeline, size, image_path, t):
         generator=generator
     ).images[0]
     
-    latent_vector = encode_image(load_image(image), pipeline.vae.to(device, torch.float16))
+    latent_vector = encode_image(load_image(image), pipeline.vae.to(device, torch.float32))
     
     noisy_latent_vector = diffuse_to_random_timestep(latent_vector, 50, t, device)
     
-    return noisy_latent_vector.to(device, torch.float16)
+    return noisy_latent_vector.to(device, torch.float32)
 
 def apply_unet_model(unet, x_noisy, t, cond):
     cond_txt = torch.cat(cond['c_crossattn'], 1)
@@ -133,14 +133,14 @@ model_name = "CompVis/stable-diffusion-v1-4"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 
-controlnet_orig = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float16, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet_orig = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet_orig, torch_dtype=torch.float16, use_safetensors=True, device="cuda:0", safety_checker = None
+    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device="cuda:0", safety_checker = None
 )
 
-controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float16, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 model = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float16, device="cuda:0", safety_checker = None
+    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device="cuda:0", safety_checker = None
 )
 
 # Freeze the original model parameters
@@ -213,7 +213,7 @@ for _ in pbar:
         a_prompt = "best quality, extremely detailed"
 
         unprompt = " " + a_prompt
-        latent_uncondition_image = encode_image(load_image(uncondition_image), model.vae.to(device, torch.float16)).detach()
+        latent_uncondition_image = encode_image(load_image(uncondition_image), model.vae.to(device, torch.float32)).detach()
         check_tensor(latent_uncondition_image, "latent_uncondition_image")
         print_tensor_stats(latent_uncondition_image, "latent_uncondition_image")
         text_inputs = tokenizer(unprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
@@ -222,12 +222,12 @@ for _ in pbar:
         check_tensor(text_embeddings, "text_embeddings")
         print_tensor_stats(text_embeddings, "text_embeddings")
         uncond = {'c_concat': [latent_uncondition_image], 'c_crossattn': [text_embeddings]}
-        e_0 = apply_unet_model(model_orig.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), uncond)
+        e_0 = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), uncond)
         check_tensor(e_0, "e_0")
         print_tensor_stats(e_0, "e_0")
 
         cprompt = "fish " + a_prompt
-        latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16)).detach()
+        latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
         check_tensor(latent_condition_image, "latent_condition_image")
         print_tensor_stats(latent_condition_image, "latent_condition_image")
         text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
@@ -236,11 +236,11 @@ for _ in pbar:
         check_tensor(text_embeddings, "text_embeddings")
         print_tensor_stats(text_embeddings, "text_embeddings")
         cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
-        e_p = apply_unet_model(model_orig.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), cond)
+        e_p = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
         check_tensor(e_p, "e_p")
         print_tensor_stats(e_p, "e_p")
 
-    latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float16)).detach()
+    latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
     check_tensor(latent_condition_image, "latent_condition_image")
     print_tensor_stats(latent_condition_image, "latent_condition_image")
     text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
@@ -251,7 +251,7 @@ for _ in pbar:
     check_tensor(text_embeddings, "text_embeddings")
 
     # Clamp and check for NaNs in e_n
-    e_n = apply_unet_model(model.unet.to(device, torch.float16), z.to(device, torch.float16), t.to(device, torch.float16), cond)
+    e_n = apply_unet_model(model.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
     e_n = torch.clamp(e_n, -1, 1)
     check_tensor(e_n, "e_n")
     print_tensor_stats(e_n, "e_n")
