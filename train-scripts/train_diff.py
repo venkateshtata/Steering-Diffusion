@@ -141,10 +141,6 @@ def apply_unet_model(unet, x_noisy, t, cond):
     return eps
 
 
-
-
-
-
 class_name = "fish"
 model_name = "CompVis/stable-diffusion-v1-4"
 condition_image = f'test_input_images/{class_name}_sketch.png'
@@ -201,9 +197,43 @@ for name, param in model.unet.named_parameters():
                 # print(name)
                 parameters.append(param)
 
+
+controlnet_train_method = "notime"
+for name, param in model.controlnet.named_parameters():
+    if controlnet_train_method == 'noxattn':
+        if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
+            print("noxattn")
+        else:
+            parameters.append(param)
+    elif controlnet_train_method == 'selfattn':
+        if 'attn1' in name:
+            parameters.append(param)
+    elif controlnet_train_method == 'xattn':
+        if 'attn2' in name:
+            parameters.append(param)
+    elif controlnet_train_method == 'allattn':
+        if 'attn1' in name or 'attn2' in name:
+            parameters.append(param)
+    elif controlnet_train_method == 'full':
+        parameters.append(param)
+    elif controlnet_train_method == 'notime':
+        if not (name.startswith('out.') or 'time_embed' in name):
+            parameters.append(param)
+    elif controlnet_train_method == 'xlayer':
+        if 'attn2' in name:
+            if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
+                parameters.append(param)
+    elif controlnet_train_method == 'selflayer':
+        if 'attn1' in name:
+            if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
+                # print(name)
+                parameters.append(param)
+
+                
 model.to(device)
 # Set the model to training mode
 model.unet.train()
+model.controlnet.train()
 
 # torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
 
@@ -294,10 +324,15 @@ for i in pbar:
     torch.cuda.empty_cache()
     
     if (i + 1) % 100 == 0:
-        intermediate_save_path = os.path.join(intermediate_model_dir, f'{class_name}_{train_method}_{i+1}_unet.safetensors')
+        intermediate_save_path_unet = os.path.join(intermediate_model_dir, f'{class_name}_{train_method}_{i+1}_unet.safetensors')
         unet_params = model.unet.state_dict()
-        save_file(unet_params, intermediate_save_path)
-        print(f'Intermediate model saved at iteration {i+1} as {class_name}_{train_method}_{i+1}_unet.safetensors')
+        save_file(unet_params, intermediate_save_path_unet)
+        print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{train_method}_{i+1}_unet.safetensors')
+        
+        intermediate_save_path_cnet = os.path.join(intermediate_model_dir, f'{class_name}_{train_method}_{i+1}_cnet.safetensors')
+        unet_params = model.unet.state_dict()
+        save_file(unet_params, intermediate_save_path_cnet)
+        print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{train_method}_{i+1}_cnet.safetensors')
 
 # Save the trained model
 model_save_path = "trained_model"

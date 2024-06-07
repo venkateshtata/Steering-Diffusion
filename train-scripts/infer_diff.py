@@ -10,15 +10,14 @@ from annotator.util import HWC3, resize_image
 import einops
 from safetensors.torch import load_file as load_safetensors
 
-class_name = "cat"
+class_name = "fish"
 
-unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_xattn_100_unet.safetensors"
-controlnet_model = "/notebooks/Steering-Diffusion/converted_model"
+unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_xattn_400_unet.safetensors"
+controlnet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_xattn_400_cnet.safetensors"
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 train_method = unet_model_path.split(".")[0].split("_")[-3]
 erased_class = unet_model_path.split(".")[0].split("/")[-1].split("_")[0]
-
 
 apply_hed = HEDdetector()
 
@@ -46,13 +45,11 @@ control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
 control = torch.stack([control for _ in range(1)], dim=0)
 cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
-# Load ControlNet model and its components separately
-controlnet = ControlNetModel.from_pretrained(controlnet_model)
+# Load ControlNet model
+controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 
-# Load the UNet model weights
 unet_state_dict = load_safetensors(unet_model_path)
-
-
+controlnet_state_dict = load_safetensors(controlnet_model_path)
 
 # Load the Stable Diffusion pipeline with ControlNet
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
@@ -63,14 +60,12 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
 
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 
-# Assign the loaded UNet weights to the pipeline
 pipe.unet.load_state_dict(unet_state_dict, strict=False)
+pipe.controlnet.load_state_dict(controlnet_state_dict, strict=False)
 
-# Print the first parameter to ensure weights are loaded correctly
-print(next(pipe.unet.parameters()).data)
 
 # Load the VAE model
-vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", safety_checker = None)
+vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", safety_checker=None)
 pipe.vae = vae
 
 # Speed up diffusion process with faster scheduler and memory optimization
