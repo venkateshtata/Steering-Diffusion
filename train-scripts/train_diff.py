@@ -6,7 +6,7 @@ from annotator.hed import HEDdetector, nms
 from diffusers.utils import load_image
 import cv2
 import einops
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, AutoencoderKL, UniPCMultistepScheduler
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
 import torchvision.transforms as transforms
 from transformers import CLIPTextModel, CLIPTokenizer
 from safetensors.torch import save_file
@@ -15,6 +15,18 @@ import os
 from pytorch_lightning import seed_everything
 import random
 import torch.nn.functional as F
+import sys
+
+
+class_name = sys.argv[1]
+model_name = "CompVis/stable-diffusion-v1-4"
+condition_image = f'test_input_images/{class_name}_sketch.png'
+uncondition_image = "unconditional.png"
+ddim_steps = 50
+iterations = 500
+intermediate_model_dir = "intermediate_models"
+controlnet_path = "/notebooks/Steering-Diffusion/converted_model"
+save_every = 100
 
 # Initialize HED detector
 apply_hed = HEDdetector()
@@ -54,8 +66,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
-ddim_steps = 50
-iterations = 500
 
 def move_to_device(batch_encoding, device):
     return {key: tensor.to(device) if tensor.dtype == torch.int64 else tensor.to(device, torch.float32) for key, tensor in batch_encoding.items()}
@@ -109,7 +119,7 @@ def sampler(pipeline, size, image_path, t):
     seed_everything(seed)
 
     # Prepare prompt and control images
-    prompt = "fish " + a_prompt
+    prompt = class_name + a_prompt
     negative_prompt = n_prompt
     
     pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
@@ -158,19 +168,16 @@ def apply_unet_model(unet, x_noisy, t, cond):
     return eps
 
 
-class_name = "fish"
-model_name = "CompVis/stable-diffusion-v1-4"
-condition_image = f'test_input_images/{class_name}_sketch.png'
-uncondition_image = "unconditional.png"
 
-intermediate_model_dir = "intermediate_models"
 
-controlnet_orig = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
+
+
+controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
     model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device="cuda:0", safety_checker = None
 )
 
-controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 model = StableDiffusionControlNetPipeline.from_pretrained(
     model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device="cuda:0", safety_checker = None
 )
@@ -180,35 +187,35 @@ for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
 # Define the train method
-train_method = 'xattn'
+unet_train_method = 'xattn'
 
 parameters = []
 # Iterate through model parameters based on the training method
 for name, param in model.unet.named_parameters():
-    if train_method == 'noxattn':
+    if unet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
             print("noxattn")
         else:
             parameters.append(param)
-    elif train_method == 'selfattn':
+    elif unet_train_method == 'selfattn':
         if 'attn1' in name:
             parameters.append(param)
-    elif train_method == 'xattn':
+    elif unet_train_method == 'xattn':
         if 'attn2' in name:
             parameters.append(param)
-    elif train_method == 'allattn':
+    elif unet_train_method == 'allattn':
         if 'attn1' in name or 'attn2' in name:
             parameters.append(param)
-    elif train_method == 'full':
+    elif unet_train_method == 'full':
         parameters.append(param)
-    elif train_method == 'notime':
+    elif unet_train_method == 'notime':
         if not (name.startswith('out.') or 'time_embed' in name):
             parameters.append(param)
-    elif train_method == 'xlayer':
+    elif unet_train_method == 'xlayer':
         if 'attn2' in name:
             if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
                 parameters.append(param)
-    elif train_method == 'selflayer':
+    elif unet_train_method == 'selflayer':
         if 'attn1' in name:
             if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
                 # print(name)
@@ -283,7 +290,7 @@ for i in pbar:
         uncond = {'c_concat': [latent_uncondition_image], 'c_crossattn': [text_embeddings]}
         e_0 = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), uncond)
 
-        cprompt = "fish " + a_prompt
+        cprompt = class_name + a_prompt
         latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
         text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
@@ -312,23 +319,14 @@ for i in pbar:
 
     torch.cuda.empty_cache()
     
-    if (i + 1) % 100 == 0:
-        intermediate_save_path_unet = os.path.join(intermediate_model_dir, f'{class_name}_{train_method}_{i+1}_unet.safetensors')
+    if (i + 1) % save_every == 0:
+        intermediate_save_path_unet = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
+        print("intermediate_save_path_unet: ", intermediate_save_path_unet)
         unet_params = model.unet.state_dict()
         save_file(unet_params, intermediate_save_path_unet)
-        print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{train_method}_{i+1}_unet.safetensors')
+        print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{unet_train_method}_{i+1}_unet.safetensors')
         
-        intermediate_save_path_cnet = os.path.join(intermediate_model_dir, f'{class_name}_{train_method}_{i+1}_cnet.safetensors')
+        intermediate_save_path_cnet = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{cnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
         unet_params = model.unet.state_dict()
         save_file(unet_params, intermediate_save_path_cnet)
-        print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{train_method}_{i+1}_cnet.safetensors')
-
-# Save the trained model
-model_save_path = "trained_model"
-os.makedirs(model_save_path, exist_ok=True)
-unet_save_path = os.path.join(model_save_path, f'{class_name}_{train_method}_{iterations}_unet.safetensors')
-
-unet_params = model.unet.state_dict()
-save_file(unet_params, unet_save_path)
-
-print(f'model saved as {class_name}_{train_method}_{iterations}_unet.safetensors')
+        print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
