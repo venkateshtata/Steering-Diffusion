@@ -326,7 +326,7 @@ for i in pbar:
         save_file(unet_params, intermediate_save_path_unet)
         print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{unet_train_method}_{i+1}_unet.safetensors')
         
-        intermediate_save_path_cnet = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{cnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
+        intermediate_save_path_cnet = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
         unet_params = model.unet.state_dict()
         save_file(unet_params, intermediate_save_path_cnet)
         print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
