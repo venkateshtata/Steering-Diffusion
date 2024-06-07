@@ -10,9 +10,9 @@ from annotator.util import HWC3, resize_image
 import einops
 from safetensors.torch import load_file as load_safetensors
 
-class_name = "fish"
+class_name = "cat"
 
-unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_allattn_100_unet.safetensors"
+unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_xattn_100_unet.safetensors"
 controlnet_model = "/notebooks/Steering-Diffusion/converted_model"
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]

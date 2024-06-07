@@ -14,6 +14,7 @@ from tqdm import tqdm
 import os
 from pytorch_lightning import seed_everything
 import random
+import torch.nn.functional as F
 
 # Initialize HED detector
 apply_hed = HEDdetector()
@@ -115,6 +116,8 @@ def apply_unet_model(unet, x_noisy, t, cond):
     
     if cond['c_concat'] is not None:
         cond_img = torch.cat(cond['c_concat'], 1)
+        # Resize cond_img if necessary to match x_noisy's dimensions
+        cond_img = F.interpolate(cond_img, size=x_noisy.shape[2:], mode='bilinear', align_corners=False)
     else:
         cond_img = None
     
@@ -123,6 +126,11 @@ def apply_unet_model(unet, x_noisy, t, cond):
     check_tensor(t, "t in apply_unet_model")
     check_tensor(cond_txt, "cond_txt in apply_unet_model")
     
+    if cond_img is not None:
+        check_tensor(cond_img, "cond_img in apply_unet_model")
+        # Add image condition to the noisy input
+        x_noisy = x_noisy + cond_img
+
     # Forward pass through UNet
     eps = unet(x_noisy, t, encoder_hidden_states=cond_txt).sample
 
@@ -131,6 +139,10 @@ def apply_unet_model(unet, x_noisy, t, cond):
     print_tensor_stats(eps, "eps in apply_unet_model")
     
     return eps
+
+
+
+
 
 
 class_name = "fish"
@@ -155,7 +167,7 @@ for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
 # Define the train method
-train_method = 'allattn'
+train_method = 'xattn'
 
 parameters = []
 # Iterate through model parameters based on the training method
