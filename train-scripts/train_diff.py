@@ -113,6 +113,11 @@ def sampler(pipeline, size, image_path, t):
 def apply_unet_model(unet, x_noisy, t, cond):
     cond_txt = torch.cat(cond['c_crossattn'], 1)
     
+    if cond['c_concat'] is not None:
+        cond_img = torch.cat(cond['c_concat'], 1)
+    else:
+        cond_img = None
+    
     # Check inputs for NaNs
     check_tensor(x_noisy, "x_noisy in apply_unet_model")
     check_tensor(t, "t in apply_unet_model")
@@ -133,6 +138,8 @@ model_name = "CompVis/stable-diffusion-v1-4"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 
+intermediate_model_dir = "intermediate_models"
+
 controlnet_orig = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
     model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device="cuda:0", safety_checker = None
@@ -148,7 +155,7 @@ for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
 # Define the train method
-train_method = 'xattn'
+train_method = 'allattn'
 
 parameters = []
 # Iterate through model parameters based on the training method
@@ -163,6 +170,9 @@ for name, param in model.unet.named_parameters():
             parameters.append(param)
     elif train_method == 'xattn':
         if 'attn2' in name:
+            parameters.append(param)
+    elif train_method == 'allattn':
+        if 'attn1' in name or 'attn2' in name:
             parameters.append(param)
     elif train_method == 'full':
         parameters.append(param)
@@ -183,7 +193,7 @@ model.to(device)
 # Set the model to training mode
 model.unet.train()
 
-torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
+# torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
 
 # Set up the optimizer and loss function
 optimizer = torch.optim.Adam(parameters, lr=1e-5)
@@ -193,7 +203,7 @@ def print_tensor_stats(tensor, name):
     print(f'{name} stats: min={tensor.min().item()}, max={tensor.max().item()}, mean={tensor.mean().item()}, std={tensor.std().item()}')
 
 pbar = tqdm(range(iterations))
-for _ in pbar:
+for i in pbar:
     optimizer.zero_grad()
 
     t_enc = torch.randint(ddim_steps, (1,), device=device)
@@ -252,7 +262,7 @@ for _ in pbar:
 
     # Clamp and check for NaNs in e_n
     e_n = apply_unet_model(model.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
-    e_n = torch.clamp(e_n, -1, 1)
+    # e_n = torch.clamp(e_n, -1, 1)
     check_tensor(e_n, "e_n")
     print_tensor_stats(e_n, "e_n")
 
@@ -265,11 +275,17 @@ for _ in pbar:
     print("Loss: ", loss.item())
 
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
+    # torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
     pbar.set_postfix({"loss": loss.item()})
     optimizer.step()
 
     torch.cuda.empty_cache()
+    
+    if (i + 1) % 100 == 0:
+        intermediate_save_path = os.path.join(intermediate_model_dir, f'{class_name}_{train_method}_{i+1}_unet.safetensors')
+        unet_params = model.unet.state_dict()
+        save_file(unet_params, intermediate_save_path)
+        print(f'Intermediate model saved at iteration {i+1} as {class_name}_{train_method}_{i+1}_unet.safetensors')
 
 # Save the trained model
 model_save_path = "trained_model"

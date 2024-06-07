@@ -10,7 +10,16 @@ from annotator.util import HWC3, resize_image
 import einops
 from safetensors.torch import load_file as load_safetensors
 
-class_name = "airplane"
+class_name = "fish"
+
+unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_allattn_100_unet.safetensors"
+controlnet_model = "/notebooks/Steering-Diffusion/converted_model"
+
+iterations = unet_model_path.split(".")[0].split("_")[-2]
+train_method = unet_model_path.split(".")[0].split("_")[-3]
+erased_class = unet_model_path.split(".")[0].split("/")[-1].split("_")[0]
+
+
 apply_hed = HEDdetector()
 
 def load_image_as_array(image_path):
@@ -38,10 +47,12 @@ control = torch.stack([control for _ in range(1)], dim=0)
 cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
 # Load ControlNet model and its components separately
-controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny")
+controlnet = ControlNetModel.from_pretrained(controlnet_model)
 
 # Load the UNet model weights
-unet_state_dict = load_safetensors("/notebooks/Steering-Diffusion/trained_model/fish_xattn_500_unet.safetensors")
+unet_state_dict = load_safetensors(unet_model_path)
+
+
 
 # Load the Stable Diffusion pipeline with ControlNet
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
@@ -49,6 +60,8 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
     controlnet=controlnet,
     safety_checker=None
 )
+
+pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 
 # Assign the loaded UNet weights to the pipeline
 pipe.unet.load_state_dict(unet_state_dict, strict=False)
@@ -74,4 +87,5 @@ output_image = pipe(
 ).images[0]
 
 # Save output image
-output_image.save(f'testing_outputs/{class_name}_scribble_unet-trained.png')
+output_image.save(f'testing_outputs/{class_name}-{erased_class}-erased_{train_method}_{iterations}.png')
+print(f'Output saved to testing_outputs/{class_name}-{erased_class}-erased_{train_method}_{iterations}.png')
