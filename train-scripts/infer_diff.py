@@ -9,14 +9,16 @@ from annotator.hed import HEDdetector, nms
 from annotator.util import HWC3, resize_image
 import einops
 from safetensors.torch import load_file as load_safetensors
+import sys
 
-class_name = "fish"
+class_name = sys.argv[1]
 
-unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_xattn_400_unet.safetensors"
-controlnet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_xattn_400_cnet.safetensors"
+unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_unet_xattn/fish_xattn_500_unet.safetensors"
+controlnet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_cnet_notime/fish_notime_500_cnet.safetensors"
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
-train_method = unet_model_path.split(".")[0].split("_")[-3]
+unet_train_method = unet_model_path.split(".")[0].split("_")[-3]
+cnet_train_method = unet_model_path.split(".")[0].split("_")[-3]
 erased_class = unet_model_path.split(".")[0].split("/")[-1].split("_")[0]
 
 apply_hed = HEDdetector()
@@ -82,5 +84,5 @@ output_image = pipe(
 ).images[0]
 
 # Save output image
-output_image.save(f'testing_outputs/{class_name}-{erased_class}-erased_{train_method}_{iterations}.png')
-print(f'Output saved to testing_outputs/{class_name}-{erased_class}-erased_{train_method}_{iterations}.png')
+output_image.save(f'testing_outputs/{class_name}-{erased_class}-erased_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
+print(f'Output saved to testing_outputs/{class_name}-{erased_class}-erased_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')

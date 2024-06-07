@@ -28,6 +28,27 @@ def load_image_as_array(image_path):
         img = img.convert('RGB')
         return np.array(img)
 
+class LatentCaptureCallback:
+    def __init__(self, target_step, timesteps_mapping):
+        self.target_step = target_step
+        self.target_timestep = timesteps_mapping[target_step - 1]
+        self.captured_latents = None
+        self.closest_timestep = None
+
+    def __call__(self, step, timestep, latents):
+        if timestep == self.target_timestep:
+            self.captured_latents = latents.clone()
+            self.closest_timestep = timestep
+
+# Define the mapping from DDIM steps to timesteps
+timesteps_mapping = [
+    999, 979, 959, 939, 919, 899, 879, 859, 839, 819, 799, 779, 759, 739,
+    719, 699, 679, 659, 639, 619, 599, 579, 559, 539, 519, 500, 480, 460,
+    440, 420, 400, 380, 360, 340, 320, 300, 280, 260, 240, 220, 200, 180,
+    160, 140, 120, 100, 80, 60, 40, 20
+]
+
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
@@ -61,7 +82,7 @@ def diffuse_to_random_timestep(latent_vector, timesteps, t, device):
     return latent_noisy
 
 @torch.no_grad()
-def sampler(pipeline, size, image_path, t):    
+def sampler(pipeline, size, image_path, t):
     a_prompt = "best quality, extremely detailed"
     n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
     n_samples = 1
@@ -92,24 +113,30 @@ def sampler(pipeline, size, image_path, t):
     negative_prompt = n_prompt
     
     pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
-    # pipeline.enable_model_cpu_offload()
-
-    # Generate images
+    
     generator = torch.manual_seed(0)
-    image = pipeline(
+    callback = LatentCaptureCallback(target_step=t, timesteps_mapping=timesteps_mapping)
+    
+    output = pipeline(
         prompt=prompt,
         negative_prompt=negative_prompt,
-        num_inference_steps=ddim_steps,
-        guidance_scale=1,
         image=control,
-        generator=generator
-    ).images[0]
+        num_inference_steps=50,
+        guidance_scale=7.5,
+        callback=callback,
+        callback_steps=1,
+        generator=generator,
+        return_dict=True,
+        )
+
+    # Retrieve the captured latents
+    captured_latents = callback.captured_latents
+    # print("latents shape: ", captured_latents.shape)
     
-    latent_vector = encode_image(load_image(image), pipeline.vae.to(device, torch.float32))
+    # noisy_latent_vector = diffuse_to_random_timestep(captured_latents, 50, t, device)
     
-    noisy_latent_vector = diffuse_to_random_timestep(latent_vector, 50, t, device)
-    
-    return noisy_latent_vector.to(device, torch.float32)
+    return captured_latents.to(device, torch.float32)
+
 
 def apply_unet_model(unet, x_noisy, t, cond):
     cond_txt = torch.cat(cond['c_crossattn'], 1)
@@ -121,22 +148,12 @@ def apply_unet_model(unet, x_noisy, t, cond):
     else:
         cond_img = None
     
-    # Check inputs for NaNs
-    check_tensor(x_noisy, "x_noisy in apply_unet_model")
-    check_tensor(t, "t in apply_unet_model")
-    check_tensor(cond_txt, "cond_txt in apply_unet_model")
-    
     if cond_img is not None:
-        check_tensor(cond_img, "cond_img in apply_unet_model")
         # Add image condition to the noisy input
         x_noisy = x_noisy + cond_img
 
     # Forward pass through UNet
     eps = unet(x_noisy, t, encoder_hidden_states=cond_txt).sample
-
-    # Check for NaNs and print tensor stats
-    check_tensor(eps, "eps in apply_unet_model")
-    print_tensor_stats(eps, "eps in apply_unet_model")
     
     return eps
 
@@ -248,10 +265,6 @@ pbar = tqdm(range(iterations))
 for i in pbar:
     optimizer.zero_grad()
 
-    t_enc = torch.randint(ddim_steps, (1,), device=device)
-    og_num = round((int(t_enc) / ddim_steps) * 1000)
-    og_num_lim = round((int(t_enc + 1) / ddim_steps) * 1000)
-
     t = torch.randint(0, ddim_steps, (1,), device=device, dtype=torch.long)
 
     model.to("cuda:0")
@@ -259,65 +272,41 @@ for i in pbar:
 
     with torch.no_grad():
         z = sampler(model, 512, condition_image, t)
-        check_tensor(z, "z")
-        print_tensor_stats(z, "z")
 
         a_prompt = "best quality, extremely detailed"
 
         unprompt = " " + a_prompt
         latent_uncondition_image = encode_image(load_image(uncondition_image), model.vae.to(device, torch.float32)).detach()
-        check_tensor(latent_uncondition_image, "latent_uncondition_image")
-        print_tensor_stats(latent_uncondition_image, "latent_uncondition_image")
         text_inputs = tokenizer(unprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
         text_embeddings = text_encoder(text_inputs["input_ids"]).last_hidden_state.detach()
-        check_tensor(text_embeddings, "text_embeddings")
-        print_tensor_stats(text_embeddings, "text_embeddings")
         uncond = {'c_concat': [latent_uncondition_image], 'c_crossattn': [text_embeddings]}
         e_0 = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), uncond)
-        check_tensor(e_0, "e_0")
-        print_tensor_stats(e_0, "e_0")
 
         cprompt = "fish " + a_prompt
         latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
-        check_tensor(latent_condition_image, "latent_condition_image")
-        print_tensor_stats(latent_condition_image, "latent_condition_image")
         text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
         text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
-        check_tensor(text_embeddings, "text_embeddings")
-        print_tensor_stats(text_embeddings, "text_embeddings")
         cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
         e_p = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
-        check_tensor(e_p, "e_p")
-        print_tensor_stats(e_p, "e_p")
 
     latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
-    check_tensor(latent_condition_image, "latent_condition_image")
-    print_tensor_stats(latent_condition_image, "latent_condition_image")
     text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
     text_inputs = move_to_device(text_inputs, device)
     text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
     cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
-    check_tensor(latent_condition_image, "latent_condition_image")
-    check_tensor(text_embeddings, "text_embeddings")
 
-    # Clamp and check for NaNs in e_n
     e_n = apply_unet_model(model.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
-    # e_n = torch.clamp(e_n, -1, 1)
-    check_tensor(e_n, "e_n")
-    print_tensor_stats(e_n, "e_n")
 
     e_0 = e_0.detach()
     e_p = e_p.detach()
 
     loss = criteria(e_n, e_0 - (1 * (e_p - e_0)))
-    check_tensor(loss, "loss")
 
     print("Loss: ", loss.item())
 
     loss.backward()
-    # torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
     pbar.set_postfix({"loss": loss.item()})
     optimizer.step()
 
