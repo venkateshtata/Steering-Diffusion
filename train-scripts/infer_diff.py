@@ -15,8 +15,8 @@ erase_class_name = "cat"
 
 test_class_name = sys.argv[1]
 
-unet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_100_unet.safetensors'
-controlnet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_cnet_full/{erase_class_name}_full_100_cnet.safetensors'
+unet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_unet_notime/{erase_class_name}_notime_100_unet.safetensors'
+controlnet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_cnet_notime/{erase_class_name}_notime_100_cnet.safetensors'
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 unet_train_method = unet_model_path.split(".")[0].split("_")[-3]

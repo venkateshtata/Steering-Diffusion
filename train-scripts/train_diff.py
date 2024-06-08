@@ -187,7 +187,7 @@ for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
 # Define the train method
-unet_train_method = 'xattn'
+unet_train_method = 'notime'
 
 parameters = []
 # Iterate through model parameters based on the training method
@@ -221,8 +221,10 @@ for name, param in model.unet.named_parameters():
                 # print(name)
                 parameters.append(param)
 
+print("model: ", model)
 
-controlnet_train_method = "full"
+
+controlnet_train_method = "notime"
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
