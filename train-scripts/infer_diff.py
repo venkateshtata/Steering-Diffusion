@@ -11,10 +11,12 @@ import einops
 from safetensors.torch import load_file as load_safetensors
 import sys
 
-class_name = sys.argv[1]
+erase_class_name = "cat"
 
-unet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_unet_xattn/fish_xattn_500_unet.safetensors"
-controlnet_model_path = "/notebooks/Steering-Diffusion/intermediate_models/fish_cnet_notime/fish_notime_500_cnet.safetensors"
+test_class_name = sys.argv[1]
+
+unet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_900_unet.safetensors'
+controlnet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_cnet_notime/{erase_class_name}_notime_900_cnet.safetensors'
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 unet_train_method = unet_model_path.split(".")[0].split("_")[-3]
@@ -29,7 +31,7 @@ def load_image_as_array(image_path):
         image_array = np.array(img)
         return image_array
 
-image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{class_name}_sketch.png')
+image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{test_class_name}_sketch.png')
 
 input_image = HWC3(image)
 detected_map = apply_hed(resize_image(input_image, 512))
@@ -77,12 +79,12 @@ pipe.enable_model_cpu_offload()
 # Generate image
 generator = torch.manual_seed(0)
 output_image = pipe(
-    class_name,
+    test_class_name,
     num_inference_steps=50,
     generator=generator,
     image=cond_control,
 ).images[0]
 
 # Save output image
-output_image.save(f'testing_outputs/{class_name}-{erased_class}-erased_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
-print(f'Output saved to testing_outputs/{class_name}-{erased_class}-erased_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
+output_image.save(f'testing_outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
+print(f'Output saved to testing_outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')

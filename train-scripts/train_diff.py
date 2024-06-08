@@ -23,7 +23,7 @@ model_name = "CompVis/stable-diffusion-v1-4"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 ddim_steps = 50
-iterations = 500
+iterations = 1000
 intermediate_model_dir = "intermediate_models"
 controlnet_path = "/notebooks/Steering-Diffusion/converted_model"
 save_every = 100
@@ -222,7 +222,7 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 
-controlnet_train_method = "notime"
+controlnet_train_method = "full"
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
@@ -321,12 +321,13 @@ for i in pbar:
     
     if (i + 1) % save_every == 0:
         intermediate_save_path_unet = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
-        print("intermediate_save_path_unet: ", intermediate_save_path_unet)
+        os.makedirs(os.path.dirname(intermediate_save_path_unet), exist_ok=True)
         unet_params = model.unet.state_dict()
         save_file(unet_params, intermediate_save_path_unet)
         print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{unet_train_method}_{i+1}_unet.safetensors')
         
         intermediate_save_path_cnet = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
-        unet_params = model.unet.state_dict()
-        save_file(unet_params, intermediate_save_path_cnet)
+        os.makedirs(os.path.dirname(intermediate_save_path_cnet), exist_ok=True)
+        cnet_params = model.controlnet.state_dict()
+        save_file(cnet_params, intermediate_save_path_cnet)
         print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
