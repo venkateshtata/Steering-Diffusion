@@ -69,8 +69,8 @@ pipe.controlnet.load_state_dict(controlnet_state_dict, strict=False)
 
 
 # Load the VAE model
-# vae = AutoencoderKL.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="vae", safety_checker=None)
-# pipe.vae = vae
+vae = AutoencoderKL.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="vae", safety_checker=None)
+pipe.vae = vae
 
 # Speed up diffusion process with faster scheduler and memory optimization
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
@@ -86,5 +86,5 @@ output_image = pipe(
 ).images[0]
 
 # Save output image
-output_image.save(f'testing_outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
-print(f'Output saved to testing_outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
+output_image.save(f'outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
+print(f'Output saved to outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')

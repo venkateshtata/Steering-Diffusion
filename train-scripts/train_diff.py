@@ -220,7 +220,7 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 
-controlnet_train_method = "xattn"
+controlnet_train_method = "notime"
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
@@ -257,7 +257,6 @@ model.to(device)
 model.unet.train()
 model.controlnet.train()
 
-# torch.nn.utils.clip_grad_norm_(model.unet.parameters(), max_norm=1.0)
 
 # Set up the optimizer and loss function
 optimizer = torch.optim.Adam(parameters, lr=1e-5)
