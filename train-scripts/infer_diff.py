@@ -15,8 +15,8 @@ erase_class_name = sys.argv[1]
 
 test_class_name = sys.argv[2]
 
-unet_model_path = f'intermediate_models/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_100_unet.safetensors'
-controlnet_model_path = f'intermediate_models/{erase_class_name}_cnet_xattn/{erase_class_name}_xattn_100_cnet.safetensors'
+unet_model_path = f'intermediate_models/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_200_unet.safetensors'
+controlnet_model_path = f'intermediate_models/{erase_class_name}_cnet_xattn/{erase_class_name}_xattn_200_cnet.safetensors'
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 unet_train_method = unet_model_path.split(".")[0].split("_")[-3]

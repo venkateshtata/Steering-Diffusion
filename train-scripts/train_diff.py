@@ -17,9 +17,21 @@ import random
 import torch.nn.functional as F
 import sys
 import wandb 
+import os
+
+def save_model_with_removal(path, params):
+    if os.path.exists(path):
+        os.remove(path)
+    save_file(params, path)
+
+# Variables to track the previous file paths
+previous_unet_save_path = None
+previous_cnet_save_path = None
 
 wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
 wandb.init(project="sketch-erase")
+
+
 
 
 
@@ -220,7 +232,7 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 
-controlnet_train_method = "xattn"
+controlnet_train_method = "notime"
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
@@ -331,14 +343,29 @@ for i in pbar:
     torch.cuda.empty_cache()
     
     if (i + 1) % save_interval == 0:
-        intermediate_save_path_unet = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
-        os.makedirs(os.path.dirname(intermediate_save_path_unet), exist_ok=True)
+        # Define current file paths
+        current_unet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
+        current_cnet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
+
+        # Create directories if they don't exist
+        os.makedirs(os.path.dirname(current_unet_save_path), exist_ok=True)
+        os.makedirs(os.path.dirname(current_cnet_save_path), exist_ok=True)
+
+        # Remove previous files if they exist
+        if previous_unet_save_path and os.path.exists(previous_unet_save_path):
+            os.remove(previous_unet_save_path)
+        if previous_cnet_save_path and os.path.exists(previous_cnet_save_path):
+            os.remove(previous_cnet_save_path)
+
+        # Save current model parameters
         unet_params = model.unet.state_dict()
-        save_file(unet_params, intermediate_save_path_unet)
+        save_model_with_removal(current_unet_save_path, unet_params)
         print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{unet_train_method}_{i+1}_unet.safetensors')
-        
-        intermediate_save_path_cnet = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
-        os.makedirs(os.path.dirname(intermediate_save_path_cnet), exist_ok=True)
+
         cnet_params = model.controlnet.state_dict()
-        save_file(cnet_params, intermediate_save_path_cnet)
+        save_model_with_removal(current_cnet_save_path, cnet_params)
         print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
+
+        # Update previous file paths
+        previous_unet_save_path = current_unet_save_path
+        previous_cnet_save_path = current_cnet_save_path
