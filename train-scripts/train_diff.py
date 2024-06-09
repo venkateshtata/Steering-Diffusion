@@ -33,15 +33,13 @@ wandb.init(project="sketch-erase")
 
 
 
-
-
 class_name = sys.argv[1]
 model_name = "runwayml/stable-diffusion-v1-5"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 ddim_steps = 50
 iterations = 1000
-intermediate_model_dir = "intermediate_models"
+intermediate_model_dir = "intermediate_models_loss3"
 controlnet_path = "converted_model"
 save_interval = 100
 
@@ -76,7 +74,6 @@ timesteps_mapping = [
     440, 420, 400, 380, 360, 340, 320, 300, 280, 260, 240, 220, 200, 180,
     160, 140, 120, 100, 80, 60, 40, 20
 ]
-
 
 device = f'cuda:{sys.argv[2]}' 
 
@@ -331,7 +328,8 @@ for i in pbar:
     e_0 = e_0.detach()
     e_p = e_p.detach()
 
-    loss = criteria(e_n, e_0 - (1 * (e_p - e_0)))
+    eta = 0.5  # Example value, adjust as needed
+    loss = criteria(e_n, e_0 - eta * (e_p - e_0))
 
     print("Loss: ", loss.item())
     wandb.log({"loss": loss.item()})

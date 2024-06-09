@@ -15,8 +15,8 @@ erase_class_name = sys.argv[1]
 
 test_class_name = sys.argv[2]
 
-unet_model_path = f'intermediate_models/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_200_unet.safetensors'
-controlnet_model_path = f'intermediate_models/{erase_class_name}_cnet_xattn/{erase_class_name}_xattn_200_cnet.safetensors'
+unet_model_path = f'intermediate_models_loss3/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_300_unet.safetensors'
+controlnet_model_path = f'intermediate_models_loss3/{erase_class_name}_cnet_notime/{erase_class_name}_notime_300_cnet.safetensors'
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 unet_train_method = unet_model_path.split(".")[0].split("_")[-3]
@@ -86,5 +86,5 @@ output_image = pipe(
 ).images[0]
 
 # Save output image
-output_image.save(f'outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
-print(f'Output saved to outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}.png')
+output_image.save(f'outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}_loss3.png')
+print(f'Output saved to outputs/{erased_class}-erased_{test_class_name}_{unet_train_method}-unet_{cnet_train_method}-cnet_{iterations}_loss3.png')
