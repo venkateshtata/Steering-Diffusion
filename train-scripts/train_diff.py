@@ -30,7 +30,7 @@ uncondition_image = "unconditional.png"
 ddim_steps = 50
 iterations = 1000
 intermediate_model_dir = "intermediate_models"
-controlnet_path = "lllyasviel/sd-controlnet-scribble"
+controlnet_path = "converted_model"
 save_interval = 100
 
 # Initialize HED detector
@@ -220,7 +220,7 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 
-controlnet_train_method = "notime"
+controlnet_train_method = "xattn"
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
@@ -272,8 +272,10 @@ config = {
     "iterations": iterations,
     "unet_train_method": unet_train_method,
     "controlnet_train_method": controlnet_train_method,
-    "learning_rate": 1e-5
+    "learning_rate": 1e-5,
+    "class_name": class_name
 }
+
 wandb.config.update(config)
 
 pbar = tqdm(range(iterations))

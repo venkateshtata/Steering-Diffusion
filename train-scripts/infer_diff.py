@@ -50,7 +50,7 @@ control = torch.stack([control for _ in range(1)], dim=0)
 cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
 # Load ControlNet model
-controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-scribble", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet = ControlNetModel.from_pretrained("converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 
 unet_state_dict = load_safetensors(unet_model_path)
 controlnet_state_dict = load_safetensors(controlnet_model_path)
