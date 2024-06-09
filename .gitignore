@@ -4,3 +4,4 @@ sketchy_dataset/
 trained_model/
 converted_model/
 intermediate_models/
+wandb/
