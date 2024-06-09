@@ -11,12 +11,12 @@ import einops
 from safetensors.torch import load_file as load_safetensors
 import sys
 
-erase_class_name = "cat"
+erase_class_name = sys.argv[1]
 
-test_class_name = sys.argv[1]
+test_class_name = sys.argv[2]
 
-unet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_unet_notime/{erase_class_name}_notime_100_unet.safetensors'
-controlnet_model_path = f'/notebooks/Steering-Diffusion/intermediate_models/{erase_class_name}_cnet_notime/{erase_class_name}_notime_100_cnet.safetensors'
+unet_model_path = f'intermediate_models/{erase_class_name}_unet_xattn/{erase_class_name}_xattn_100_unet.safetensors'
+controlnet_model_path = f'intermediate_models/{erase_class_name}_cnet_xattn/{erase_class_name}_xattn_100_cnet.safetensors'
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 unet_train_method = unet_model_path.split(".")[0].split("_")[-3]
@@ -31,7 +31,7 @@ def load_image_as_array(image_path):
         image_array = np.array(img)
         return image_array
 
-image = load_image_as_array(f'/notebooks/Steering-Diffusion/test_input_images/{test_class_name}_sketch.png')
+image = load_image_as_array(f'test_input_images/{test_class_name}_sketch.png')
 
 input_image = HWC3(image)
 detected_map = apply_hed(resize_image(input_image, 512))
@@ -50,14 +50,14 @@ control = torch.stack([control for _ in range(1)], dim=0)
 cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
 
 # Load ControlNet model
-controlnet = ControlNetModel.from_pretrained("/notebooks/Steering-Diffusion/converted_model", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-scribble", torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
 
 unet_state_dict = load_safetensors(unet_model_path)
 controlnet_state_dict = load_safetensors(controlnet_model_path)
 
 # Load the Stable Diffusion pipeline with ControlNet
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
-    "CompVis/stable-diffusion-v1-4",
+    "runwayml/stable-diffusion-v1-5",
     controlnet=controlnet,
     safety_checker=None
 )
@@ -69,8 +69,8 @@ pipe.controlnet.load_state_dict(controlnet_state_dict, strict=False)
 
 
 # Load the VAE model
-vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", safety_checker=None)
-pipe.vae = vae
+# vae = AutoencoderKL.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="vae", safety_checker=None)
+# pipe.vae = vae
 
 # Speed up diffusion process with faster scheduler and memory optimization
 pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)

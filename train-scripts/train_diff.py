@@ -16,17 +16,22 @@ from pytorch_lightning import seed_everything
 import random
 import torch.nn.functional as F
 import sys
+import wandb 
+
+wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
+wandb.init(project="sketch-erase")
+
 
 
 class_name = sys.argv[1]
-model_name = "CompVis/stable-diffusion-v1-4"
+model_name = "runwayml/stable-diffusion-v1-5"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 ddim_steps = 50
 iterations = 1000
 intermediate_model_dir = "intermediate_models"
-controlnet_path = "/notebooks/Steering-Diffusion/converted_model"
-save_every = 100
+controlnet_path = "lllyasviel/sd-controlnet-scribble"
+save_interval = 100
 
 # Initialize HED detector
 apply_hed = HEDdetector()
@@ -61,7 +66,7 @@ timesteps_mapping = [
 ]
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = f'cuda:{sys.argv[2]}' 
 
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
@@ -113,7 +118,7 @@ def sampler(pipeline, size, image_path, t):
 
     control = torch.from_numpy(detected_map.copy()).float().to(device, torch.float32) / 255.0
     control = torch.stack([control for _ in range(n_samples)], dim=0)
-    control = einops.rearrange(control, 'b h w c -> b c h w').clone().to("cuda:0", torch.float32)
+    control = einops.rearrange(control, 'b h w c -> b c h w').clone().to(device, torch.float32)
 
     seed = random.randint(0, 65535)
     seed_everything(seed)
@@ -141,10 +146,7 @@ def sampler(pipeline, size, image_path, t):
 
     # Retrieve the captured latents
     captured_latents = callback.captured_latents
-    # print("latents shape: ", captured_latents.shape)
-    
-    # noisy_latent_vector = diffuse_to_random_timestep(captured_latents, 50, t, device)
-    
+
     return captured_latents.to(device, torch.float32)
 
 
@@ -168,18 +170,14 @@ def apply_unet_model(unet, x_noisy, t, cond):
     return eps
 
 
-
-
-
-
-controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device="cuda:0", safety_checker = None
+    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device=device, safety_checker = None
 )
 
-controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device="cuda:0", use_safetensors=True, safety_checker = None)
+controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
 model = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device="cuda:0", safety_checker = None
+    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device=device, safety_checker = None
 )
 
 # Freeze the original model parameters
@@ -187,7 +185,7 @@ for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
 # Define the train method
-unet_train_method = 'notime'
+unet_train_method = 'xattn'
 
 parameters = []
 # Iterate through model parameters based on the training method
@@ -221,10 +219,8 @@ for name, param in model.unet.named_parameters():
                 # print(name)
                 parameters.append(param)
 
-print("model: ", model)
 
-
-controlnet_train_method = "notime"
+controlnet_train_method = "xattn"
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_method == 'noxattn':
         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
@@ -270,14 +266,25 @@ criteria = torch.nn.MSELoss()
 def print_tensor_stats(tensor, name):
     print(f'{name} stats: min={tensor.min().item()}, max={tensor.max().item()}, mean={tensor.mean().item()}, std={tensor.std().item()}')
 
+
+config = {
+    "model_name": model_name,
+    "ddim_steps": ddim_steps,
+    "iterations": iterations,
+    "unet_train_method": unet_train_method,
+    "controlnet_train_method": controlnet_train_method,
+    "learning_rate": 1e-5
+}
+wandb.config.update(config)
+
 pbar = tqdm(range(iterations))
 for i in pbar:
     optimizer.zero_grad()
 
     t = torch.randint(0, ddim_steps, (1,), device=device, dtype=torch.long)
 
-    model.to("cuda:0")
-    model_orig.to("cuda:0")
+    model.to(device)
+    model_orig.to(device)
 
     with torch.no_grad():
         z = sampler(model, 512, condition_image, t)
@@ -314,6 +321,7 @@ for i in pbar:
     loss = criteria(e_n, e_0 - (1 * (e_p - e_0)))
 
     print("Loss: ", loss.item())
+    wandb.log({"loss": loss.item()})
 
     loss.backward()
     pbar.set_postfix({"loss": loss.item()})
@@ -321,7 +329,7 @@ for i in pbar:
 
     torch.cuda.empty_cache()
     
-    if (i + 1) % save_every == 0:
+    if (i + 1) % save_interval == 0:
         intermediate_save_path_unet = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
         os.makedirs(os.path.dirname(intermediate_save_path_unet), exist_ok=True)
         unet_params = model.unet.state_dict()

@@ -1,0 +1,819 @@
+/opt/conda/lib/python3.10/site-packages/huggingface_hub/file_download.py:1132: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Some weights of the model checkpoint at openai/clip-vit-large-patch14 were not used when initializing CLIPTextModel: ['vision_model.encoder.layers.19.self_attn.v_proj.weight', 'vision_model.encoder.layers.21.mlp.fc2.weight', 'vision_model.encoder.layers.3.mlp.fc2.bias', 'vision_model.encoder.layers.16.self_attn.out_proj.bias', 'vision_model.encoder.layers.4.layer_norm1.weight', 'vision_model.encoder.layers.1.layer_norm1.bias', 'vision_model.encoder.layers.16.self_attn.out_proj.weight', 'vision_model.encoder.layers.2.mlp.fc2.bias', 'vision_model.encoder.layers.15.layer_norm1.bias', 'vision_model.encoder.layers.14.self_attn.out_proj.weight', 'vision_model.encoder.layers.9.mlp.fc2.bias', 'vision_model.encoder.layers.11.mlp.fc2.bias', 'vision_model.encoder.layers.14.mlp.fc2.weight', 'vision_model.encoder.layers.22.mlp.fc2.bias', 'vision_model.encoder.layers.0.self_attn.q_proj.bias', 'vision_model.encoder.layers.8.layer_norm1.weight', 'vision_model.encoder.layers.2.layer_norm2.weight', 'vision_model.encoder.layers.12.layer_norm1.weight', 'vision_model.encoder.layers.23.layer_norm1.weight', 'vision_model.encoder.layers.15.self_attn.k_proj.weight', 'vision_model.encoder.layers.11.self_attn.k_proj.weight', 'vision_model.encoder.layers.5.layer_norm2.bias', 'vision_model.encoder.layers.18.self_attn.q_proj.bias', 'vision_model.encoder.layers.21.self_attn.k_proj.bias', 'vision_model.encoder.layers.0.layer_norm1.bias', 'vision_model.encoder.layers.20.self_attn.v_proj.weight', 'vision_model.encoder.layers.7.self_attn.q_proj.weight', 'vision_model.encoder.layers.5.self_attn.q_proj.bias', 'vision_model.encoder.layers.4.self_attn.v_proj.weight', 'vision_model.encoder.layers.8.layer_norm2.weight', 'vision_model.encoder.layers.23.layer_norm2.bias', 'vision_model.encoder.layers.20.self_attn.k_proj.weight', 'vision_model.encoder.layers.10.layer_norm1.weight', 'vision_model.encoder.layers.16.self_attn.v_proj.bias', 'vision_model.encoder.layers.21.self_attn.q_proj.bias', 'vision_model.encoder.layers.11.self_attn.out_proj.weight', 'vision_model.encoder.layers.10.self_attn.v_proj.weight', 'vision_model.encoder.layers.18.self_attn.out_proj.weight', 'vision_model.encoder.layers.12.mlp.fc2.bias', 'vision_model.encoder.layers.16.self_attn.v_proj.weight', 'vision_model.encoder.layers.23.mlp.fc2.bias', 'vision_model.encoder.layers.13.layer_norm1.bias', 'logit_scale', 'vision_model.encoder.layers.3.layer_norm2.weight', 'vision_model.embeddings.position_ids', 'vision_model.encoder.layers.10.mlp.fc2.bias', 'vision_model.encoder.layers.13.layer_norm2.weight', 'vision_model.encoder.layers.17.self_attn.q_proj.weight', 'vision_model.encoder.layers.7.layer_norm1.bias', 'vision_model.encoder.layers.23.self_attn.k_proj.weight', 'vision_model.encoder.layers.13.mlp.fc2.weight', 'vision_model.encoder.layers.0.layer_norm2.bias', 'vision_model.encoder.layers.4.self_attn.v_proj.bias', 'vision_model.encoder.layers.18.layer_norm2.bias', 'vision_model.encoder.layers.18.self_attn.v_proj.bias', 'vision_model.encoder.layers.7.self_attn.out_proj.bias', 'vision_model.encoder.layers.10.layer_norm2.weight', 'vision_model.encoder.layers.10.self_attn.q_proj.bias', 'vision_model.encoder.layers.20.layer_norm2.weight', 'vision_model.encoder.layers.15.self_attn.out_proj.bias', 'vision_model.encoder.layers.22.self_attn.out_proj.bias', 'vision_model.encoder.layers.7.layer_norm1.weight', 'vision_model.encoder.layers.9.self_attn.k_proj.bias', 'vision_model.encoder.layers.1.layer_norm2.weight', 'vision_model.encoder.layers.19.layer_norm2.weight', 'vision_model.encoder.layers.2.self_attn.v_proj.bias', 'vision_model.encoder.layers.5.layer_norm1.bias', 'vision_model.encoder.layers.9.self_attn.out_proj.bias', 'vision_model.encoder.layers.23.mlp.fc1.weight', 'vision_model.encoder.layers.15.self_attn.v_proj.weight', 'vision_model.encoder.layers.22.layer_norm1.weight', 'vision_model.encoder.layers.22.self_attn.k_proj.weight', 'vision_model.encoder.layers.19.self_attn.out_proj.weight', 'vision_model.encoder.layers.6.mlp.fc1.bias', 'vision_model.encoder.layers.16.self_attn.q_proj.weight', 'vision_model.encoder.layers.9.mlp.fc2.weight', 'vision_model.encoder.layers.15.mlp.fc1.bias', 'vision_model.encoder.layers.5.self_attn.k_proj.weight', 'vision_model.encoder.layers.9.self_attn.q_proj.weight', 'vision_model.encoder.layers.14.self_attn.v_proj.weight', 'vision_model.encoder.layers.3.self_attn.out_proj.weight', 'vision_model.encoder.layers.6.layer_norm2.weight', 'vision_model.encoder.layers.1.self_attn.v_proj.bias', 'vision_model.encoder.layers.5.mlp.fc2.weight', 'vision_model.encoder.layers.6.layer_norm1.weight', 'vision_model.encoder.layers.3.self_attn.out_proj.bias', 'vision_model.encoder.layers.5.mlp.fc1.bias', 'vision_model.encoder.layers.0.mlp.fc1.bias', 'vision_model.encoder.layers.9.mlp.fc1.weight', 'vision_model.encoder.layers.9.layer_norm2.weight', 'vision_model.encoder.layers.8.mlp.fc2.bias', 'vision_model.encoder.layers.20.self_attn.v_proj.bias', 'vision_model.encoder.layers.3.layer_norm1.bias', 'vision_model.encoder.layers.19.mlp.fc2.weight', 'vision_model.encoder.layers.5.self_attn.k_proj.bias', 'vision_model.encoder.layers.9.mlp.fc1.bias', 'vision_model.encoder.layers.16.layer_norm2.bias', 'vision_model.encoder.layers.10.mlp.fc1.bias', 'vision_model.encoder.layers.7.self_attn.v_proj.weight', 'vision_model.encoder.layers.7.layer_norm2.bias', 'vision_model.encoder.layers.7.self_attn.q_proj.bias', 'vision_model.encoder.layers.9.self_attn.v_proj.weight', 'vision_model.encoder.layers.12.self_attn.v_proj.weight', 'vision_model.encoder.layers.13.mlp.fc1.bias', 'vision_model.encoder.layers.14.self_attn.q_proj.bias', 'vision_model.encoder.layers.4.layer_norm2.bias', 'vision_model.encoder.layers.16.layer_norm1.bias', 'vision_model.encoder.layers.18.mlp.fc1.weight', 'vision_model.encoder.layers.13.self_attn.q_proj.weight', 'vision_model.encoder.layers.13.self_attn.v_proj.weight', 'vision_model.encoder.layers.9.self_attn.q_proj.bias', 'vision_model.encoder.layers.6.self_attn.k_proj.bias', 'vision_model.encoder.layers.2.layer_norm1.weight', 'vision_model.encoder.layers.19.layer_norm2.bias', 'vision_model.encoder.layers.4.mlp.fc1.bias', 'vision_model.encoder.layers.21.self_attn.v_proj.weight', 'vision_model.encoder.layers.16.layer_norm2.weight', 'vision_model.encoder.layers.8.self_attn.out_proj.bias', 'vision_model.embeddings.patch_embedding.weight', 'vision_model.encoder.layers.6.layer_norm2.bias', 'vision_model.encoder.layers.13.layer_norm2.bias', 'vision_model.encoder.layers.23.self_attn.out_proj.weight', 'vision_model.encoder.layers.17.mlp.fc1.bias', 'vision_model.encoder.layers.17.self_attn.out_proj.weight', 'vision_model.encoder.layers.14.self_attn.q_proj.weight', 'vision_model.encoder.layers.2.layer_norm1.bias', 'vision_model.encoder.layers.16.self_attn.k_proj.weight', 'vision_model.encoder.layers.12.layer_norm2.weight', 'vision_model.encoder.layers.11.layer_norm2.weight', 'vision_model.encoder.layers.3.self_attn.q_proj.weight', 'vision_model.encoder.layers.7.self_attn.k_proj.weight', 'vision_model.encoder.layers.22.self_attn.v_proj.weight', 'vision_model.encoder.layers.22.layer_norm2.bias', 'vision_model.encoder.layers.6.mlp.fc1.weight', 'vision_model.encoder.layers.0.self_attn.out_proj.bias', 'vision_model.encoder.layers.20.self_attn.q_proj.bias', 'vision_model.encoder.layers.17.layer_norm1.weight', 'vision_model.encoder.layers.22.mlp.fc1.bias', 'vision_model.encoder.layers.4.self_attn.q_proj.weight', 'vision_model.encoder.layers.3.mlp.fc1.bias', 'vision_model.encoder.layers.6.layer_norm1.bias', 'vision_model.encoder.layers.16.self_attn.q_proj.bias', 'vision_model.encoder.layers.12.mlp.fc1.weight', 'vision_model.encoder.layers.18.self_attn.k_proj.weight', 'vision_model.encoder.layers.23.self_attn.v_proj.bias', 'vision_model.encoder.layers.0.self_attn.v_proj.weight', 'vision_model.encoder.layers.1.self_attn.q_proj.bias', 'vision_model.encoder.layers.7.mlp.fc1.bias', 'vision_model.encoder.layers.15.self_attn.q_proj.bias', 'vision_model.encoder.layers.12.self_attn.out_proj.weight', 'vision_model.encoder.layers.0.self_attn.k_proj.weight', 'vision_model.encoder.layers.10.self_attn.k_proj.bias', 'vision_model.encoder.layers.11.layer_norm1.weight', 'vision_model.encoder.layers.6.self_attn.out_proj.weight', 'vision_model.encoder.layers.2.self_attn.v_proj.weight', 'vision_model.encoder.layers.17.self_attn.q_proj.bias', 'vision_model.encoder.layers.15.self_attn.out_proj.weight', 'vision_model.encoder.layers.5.layer_norm1.weight', 'vision_model.encoder.layers.23.self_attn.v_proj.weight', 'vision_model.encoder.layers.3.self_attn.v_proj.bias', 'vision_model.encoder.layers.23.layer_norm1.bias', 'vision_model.encoder.layers.2.self_attn.k_proj.bias', 'vision_model.encoder.layers.4.mlp.fc1.weight', 'vision_model.encoder.layers.4.layer_norm2.weight', 'vision_model.encoder.layers.13.self_attn.out_proj.bias', 'vision_model.encoder.layers.21.self_attn.q_proj.weight', 'vision_model.encoder.layers.18.layer_norm1.bias', 'vision_model.encoder.layers.12.self_attn.q_proj.weight', 'vision_model.encoder.layers.2.self_attn.k_proj.weight', 'vision_model.encoder.layers.3.self_attn.k_proj.bias', 'vision_model.encoder.layers.13.self_attn.q_proj.bias', 'vision_model.encoder.layers.17.mlp.fc2.bias', 'vision_model.encoder.layers.6.self_attn.q_proj.weight', 'vision_model.encoder.layers.19.mlp.fc1.bias', 'vision_model.encoder.layers.6.mlp.fc2.bias', 'vision_model.encoder.layers.6.self_attn.out_proj.bias', 'vision_model.encoder.layers.14.layer_norm1.weight', 'vision_model.encoder.layers.15.mlp.fc2.bias', 'vision_model.encoder.layers.0.self_attn.k_proj.bias', 'vision_model.encoder.layers.10.self_attn.out_proj.bias', 'vision_model.encoder.layers.14.self_attn.out_proj.bias', 'vision_model.encoder.layers.8.layer_norm1.bias', 'vision_model.encoder.layers.4.self_attn.k_proj.weight', 'vision_model.encoder.layers.11.mlp.fc1.bias', 'vision_model.encoder.layers.22.mlp.fc1.weight', 'vision_model.encoder.layers.0.mlp.fc2.weight', 'vision_model.encoder.layers.8.self_attn.q_proj.weight', 'vision_model.encoder.layers.18.layer_norm1.weight', 'vision_model.encoder.layers.1.self_attn.k_proj.bias', 'vision_model.encoder.layers.20.self_attn.out_proj.weight', 'vision_model.encoder.layers.8.mlp.fc1.bias', 'vision_model.encoder.layers.7.self_attn.out_proj.weight', 'vision_model.encoder.layers.9.layer_norm2.bias', 'vision_model.encoder.layers.8.self_attn.q_proj.bias', 'vision_model.encoder.layers.23.self_attn.q_proj.weight', 'vision_model.encoder.layers.15.layer_norm1.weight', 'vision_model.encoder.layers.3.self_attn.q_proj.bias', 'vision_model.encoder.layers.12.self_attn.out_proj.bias', 'vision_model.encoder.layers.23.layer_norm2.weight', 'vision_model.encoder.layers.16.self_attn.k_proj.bias', 'vision_model.encoder.layers.17.self_attn.k_proj.bias', 'vision_model.encoder.layers.19.self_attn.q_proj.weight', 'vision_model.encoder.layers.7.self_attn.k_proj.bias', 'vision_model.encoder.layers.3.self_attn.v_proj.weight', 'vision_model.encoder.layers.13.mlp.fc1.weight', 'vision_model.encoder.layers.14.mlp.fc1.weight', 'vision_model.encoder.layers.3.mlp.fc2.weight', 'vision_model.encoder.layers.1.self_attn.k_proj.weight', 'vision_model.encoder.layers.4.self_attn.out_proj.bias', 'vision_model.encoder.layers.21.layer_norm1.bias', 'vision_model.encoder.layers.8.self_attn.out_proj.weight', 'vision_model.encoder.layers.7.mlp.fc1.weight', 'vision_model.encoder.layers.17.mlp.fc1.weight', 'vision_model.encoder.layers.11.mlp.fc1.weight', 'vision_model.encoder.layers.7.layer_norm2.weight', 'vision_model.encoder.layers.21.mlp.fc2.bias', 'vision_model.encoder.layers.1.layer_norm1.weight', 'vision_model.encoder.layers.14.layer_norm1.bias', 'vision_model.encoder.layers.19.layer_norm1.bias', 'vision_model.encoder.layers.15.self_attn.q_proj.weight', 'vision_model.encoder.layers.1.self_attn.q_proj.weight', 'vision_model.encoder.layers.21.self_attn.v_proj.bias', 'vision_model.encoder.layers.21.mlp.fc1.bias', 'vision_model.encoder.layers.11.self_attn.v_proj.weight', 'vision_model.encoder.layers.22.self_attn.q_proj.weight', 'vision_model.encoder.layers.19.self_attn.q_proj.bias', 'vision_model.encoder.layers.0.mlp.fc2.bias', 'vision_model.encoder.layers.21.self_attn.out_proj.weight', 'vision_model.encoder.layers.10.layer_norm1.bias', 'vision_model.encoder.layers.0.self_attn.q_proj.weight', 'vision_model.post_layernorm.bias', 'vision_model.encoder.layers.8.self_attn.k_proj.weight', 'vision_model.encoder.layers.10.mlp.fc2.weight', 'vision_model.encoder.layers.14.layer_norm2.weight', 'vision_model.encoder.layers.5.self_attn.out_proj.bias', 'vision_model.encoder.layers.20.layer_norm2.bias', 'vision_model.encoder.layers.6.self_attn.q_proj.bias', 'vision_model.encoder.layers.17.layer_norm1.bias', 'vision_model.encoder.layers.17.self_attn.v_proj.bias', 'vision_model.encoder.layers.2.self_attn.out_proj.bias', 'vision_model.encoder.layers.5.self_attn.v_proj.weight', 'vision_model.encoder.layers.11.self_attn.v_proj.bias', 'vision_model.encoder.layers.20.mlp.fc1.bias', 'vision_model.encoder.layers.10.self_attn.v_proj.bias', 'vision_model.encoder.layers.5.mlp.fc1.weight', 'vision_model.encoder.layers.9.layer_norm1.weight', 'vision_model.encoder.layers.4.self_attn.q_proj.bias', 'vision_model.encoder.layers.3.layer_norm1.weight', 'vision_model.encoder.layers.21.self_attn.out_proj.bias', 'vision_model.encoder.layers.0.layer_norm2.weight', 'vision_model.encoder.layers.12.mlp.fc2.weight', 'vision_model.encoder.layers.19.mlp.fc2.bias', 'vision_model.encoder.layers.14.mlp.fc2.bias', 'vision_model.encoder.layers.16.layer_norm1.weight', 'vision_model.encoder.layers.8.layer_norm2.bias', 'vision_model.encoder.layers.17.self_attn.k_proj.weight', 'vision_model.encoder.layers.1.mlp.fc1.weight', 'vision_model.encoder.layers.11.layer_norm2.bias', 'vision_model.encoder.layers.5.self_attn.v_proj.bias', 'vision_model.encoder.layers.13.self_attn.k_proj.weight', 'vision_model.encoder.layers.9.self_attn.v_proj.bias', 'vision_model.encoder.layers.4.layer_norm1.bias', 'vision_model.encoder.layers.5.self_attn.q_proj.weight', 'vision_model.encoder.layers.22.self_attn.v_proj.bias', 'vision_model.encoder.layers.4.mlp.fc2.bias', 'vision_model.encoder.layers.19.self_attn.v_proj.bias', 'vision_model.encoder.layers.22.self_attn.k_proj.bias', 'vision_model.encoder.layers.18.layer_norm2.weight', 'vision_model.encoder.layers.18.self_attn.q_proj.weight', 'vision_model.encoder.layers.14.self_attn.k_proj.bias', 'vision_model.encoder.layers.0.self_attn.v_proj.bias', 'vision_model.embeddings.position_embedding.weight', 'vision_model.encoder.layers.16.mlp.fc2.weight', 'vision_model.encoder.layers.1.mlp.fc2.weight', 'vision_model.encoder.layers.2.self_attn.q_proj.weight', 'vision_model.encoder.layers.14.layer_norm2.bias', 'vision_model.pre_layrnorm.weight', 'vision_model.encoder.layers.21.layer_norm2.bias', 'vision_model.encoder.layers.5.layer_norm2.weight', 'vision_model.encoder.layers.11.layer_norm1.bias', 'vision_model.encoder.layers.22.self_attn.out_proj.weight', 'vision_model.encoder.layers.23.self_attn.k_proj.bias', 'vision_model.encoder.layers.19.self_attn.k_proj.weight', 'vision_model.encoder.layers.2.mlp.fc2.weight', 'vision_model.encoder.layers.11.self_attn.out_proj.bias', 'vision_model.encoder.layers.1.self_attn.out_proj.bias', 'text_projection.weight', 'vision_model.encoder.layers.14.self_attn.k_proj.weight', 'vision_model.encoder.layers.22.layer_norm2.weight', 'vision_model.encoder.layers.6.self_attn.v_proj.bias', 'vision_model.encoder.layers.20.self_attn.q_proj.weight', 'vision_model.encoder.layers.13.self_attn.k_proj.bias', 'vision_model.encoder.layers.15.layer_norm2.weight', 'vision_model.encoder.layers.19.layer_norm1.weight', 'vision_model.encoder.layers.21.self_attn.k_proj.weight', 'vision_model.encoder.layers.8.self_attn.v_proj.weight', 'vision_model.encoder.layers.19.self_attn.out_proj.bias', 'vision_model.encoder.layers.20.self_attn.k_proj.bias', 'vision_model.encoder.layers.3.layer_norm2.bias', 'vision_model.encoder.layers.2.mlp.fc1.bias', 'vision_model.encoder.layers.22.self_attn.q_proj.bias', 'vision_model.encoder.layers.17.mlp.fc2.weight', 'vision_model.encoder.layers.21.mlp.fc1.weight', 'vision_model.encoder.layers.23.mlp.fc2.weight', 'vision_model.encoder.layers.15.mlp.fc1.weight', 'vision_model.encoder.layers.6.mlp.fc2.weight', 'vision_model.encoder.layers.21.layer_norm1.weight', 'vision_model.encoder.layers.23.mlp.fc1.bias', 'vision_model.encoder.layers.6.self_attn.k_proj.weight', 'vision_model.encoder.layers.22.mlp.fc2.weight', 'vision_model.encoder.layers.19.self_attn.k_proj.bias', 'vision_model.encoder.layers.3.mlp.fc1.weight', 'vision_model.encoder.layers.20.self_attn.out_proj.bias', 'vision_model.encoder.layers.0.mlp.fc1.weight', 'vision_model.encoder.layers.20.mlp.fc1.weight', 'vision_model.encoder.layers.5.self_attn.out_proj.weight', 'vision_model.encoder.layers.9.self_attn.k_proj.weight', 'vision_model.encoder.layers.23.self_attn.q_proj.bias', 'vision_model.encoder.layers.15.mlp.fc2.weight', 'vision_model.encoder.layers.7.self_attn.v_proj.bias', 'vision_model.encoder.layers.0.self_attn.out_proj.weight', 'vision_model.encoder.layers.12.mlp.fc1.bias', 'vision_model.encoder.layers.23.self_attn.out_proj.bias', 'vision_model.encoder.layers.20.layer_norm1.weight', 'vision_model.encoder.layers.17.self_attn.v_proj.weight', 'vision_model.encoder.layers.13.self_attn.v_proj.bias', 'vision_model.encoder.layers.18.mlp.fc2.bias', 'vision_model.encoder.layers.9.layer_norm1.bias', 'vision_model.encoder.layers.2.self_attn.out_proj.weight', 'vision_model.encoder.layers.10.self_attn.out_proj.weight', 'vision_model.encoder.layers.0.layer_norm1.weight', 'vision_model.encoder.layers.16.mlp.fc1.bias', 'vision_model.encoder.layers.17.layer_norm2.weight', 'vision_model.post_layernorm.weight', 'vision_model.encoder.layers.18.self_attn.k_proj.bias', 'vision_model.encoder.layers.18.self_attn.out_proj.bias', 'vision_model.encoder.layers.7.mlp.fc2.bias', 'vision_model.encoder.layers.3.self_attn.k_proj.weight', 'vision_model.encoder.layers.14.mlp.fc1.bias', 'vision_model.encoder.layers.17.layer_norm2.bias', 'vision_model.encoder.layers.21.layer_norm2.weight', 'vision_model.encoder.layers.4.self_attn.k_proj.bias', 'vision_model.encoder.layers.6.self_attn.v_proj.weight', 'vision_model.encoder.layers.22.layer_norm1.bias', 'vision_model.encoder.layers.11.self_attn.q_proj.weight', 'visual_projection.weight', 'vision_model.encoder.layers.10.self_attn.q_proj.weight', 'vision_model.encoder.layers.4.mlp.fc2.weight', 'vision_model.encoder.layers.2.layer_norm2.bias', 'vision_model.encoder.layers.1.self_attn.v_proj.weight', 'vision_model.embeddings.class_embedding', 'vision_model.encoder.layers.1.mlp.fc1.bias', 'vision_model.encoder.layers.2.mlp.fc1.weight', 'vision_model.encoder.layers.5.mlp.fc2.bias', 'vision_model.encoder.layers.12.layer_norm1.bias', 'vision_model.encoder.layers.13.layer_norm1.weight', 'vision_model.encoder.layers.11.mlp.fc2.weight', 'vision_model.encoder.layers.18.mlp.fc2.weight', 'vision_model.encoder.layers.8.mlp.fc2.weight', 'vision_model.encoder.layers.12.self_attn.k_proj.bias', 'vision_model.encoder.layers.19.mlp.fc1.weight', 'vision_model.encoder.layers.8.self_attn.v_proj.bias', 'vision_model.encoder.layers.15.layer_norm2.bias', 'vision_model.encoder.layers.20.mlp.fc2.weight', 'vision_model.encoder.layers.14.self_attn.v_proj.bias', 'vision_model.encoder.layers.12.self_attn.k_proj.weight', 'vision_model.encoder.layers.18.mlp.fc1.bias', 'vision_model.encoder.layers.15.self_attn.v_proj.bias', 'vision_model.encoder.layers.16.mlp.fc1.weight', 'vision_model.encoder.layers.10.mlp.fc1.weight', 'vision_model.pre_layrnorm.bias', 'vision_model.encoder.layers.7.mlp.fc2.weight', 'vision_model.encoder.layers.10.layer_norm2.bias', 'vision_model.encoder.layers.8.mlp.fc1.weight', 'vision_model.encoder.layers.4.self_attn.out_proj.weight', 'vision_model.encoder.layers.18.self_attn.v_proj.weight', 'vision_model.encoder.layers.8.self_attn.k_proj.bias', 'vision_model.encoder.layers.17.self_attn.out_proj.bias', 'vision_model.encoder.layers.20.layer_norm1.bias', 'vision_model.encoder.layers.12.self_attn.q_proj.bias', 'vision_model.encoder.layers.10.self_attn.k_proj.weight', 'vision_model.encoder.layers.16.mlp.fc2.bias', 'vision_model.encoder.layers.1.mlp.fc2.bias', 'vision_model.encoder.layers.12.layer_norm2.bias', 'vision_model.encoder.layers.1.layer_norm2.bias', 'vision_model.encoder.layers.12.self_attn.v_proj.bias', 'vision_model.encoder.layers.9.self_attn.out_proj.weight', 'vision_model.encoder.layers.13.mlp.fc2.bias', 'vision_model.encoder.layers.11.self_attn.k_proj.bias', 'vision_model.encoder.layers.15.self_attn.k_proj.bias', 'vision_model.encoder.layers.1.self_attn.out_proj.weight', 'vision_model.encoder.layers.11.self_attn.q_proj.bias', 'vision_model.encoder.layers.2.self_attn.q_proj.bias', 'vision_model.encoder.layers.13.self_attn.out_proj.weight', 'vision_model.encoder.layers.20.mlp.fc2.bias']
+- This IS expected if you are initializing CLIPTextModel from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing CLIPTextModel from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Cannot initialize model with low cpu memory usage because `accelerate` was not found in the environment. Defaulting to `low_cpu_mem_usage=False`. It is strongly recommended to install `accelerate` for faster and less memory-intense model loading. You can do so with:
+```
+pip install accelerate
+```
+.
+Cannot initialize model with low cpu memory usage because `accelerate` was not found in the environment. Defaulting to `low_cpu_mem_usage=False`. It is strongly recommended to install `accelerate` for faster and less memory-intense model loading. You can do so with:
+```
+pip install accelerate
+```
+.
+Keyword arguments {'device': 'cuda:1'} are not expected by StableDiffusionControlNetPipeline and will be ignored.
+Loading pipeline components...: 100%|███████████████████████████████████████████████████████████████████████████████| 6/6 [00:08<00:00,  1.38s/it]
+You have disabled the safety checker for <class 'diffusers.pipelines.controlnet.pipeline_controlnet.StableDiffusionControlNetPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Cannot initialize model with low cpu memory usage because `accelerate` was not found in the environment. Defaulting to `low_cpu_mem_usage=False`. It is strongly recommended to install `accelerate` for faster and less memory-intense model loading. You can do so with:
+```
+pip install accelerate
+```
+.
+Cannot initialize model with low cpu memory usage because `accelerate` was not found in the environment. Defaulting to `low_cpu_mem_usage=False`. It is strongly recommended to install `accelerate` for faster and less memory-intense model loading. You can do so with:
+```
+pip install accelerate
+```
+.
+Keyword arguments {'device': 'cuda:1'} are not expected by StableDiffusionControlNetPipeline and will be ignored.
+Loading pipeline components...: 100%|███████████████████████████████████████████████████████████████████████████████| 6/6 [00:08<00:00,  1.45s/it]
+You have disabled the safety checker for <class 'diffusers.pipelines.controlnet.pipeline_controlnet.StableDiffusionControlNetPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+  0%|                                                                                                                    | 0/1000 [00:00<?, ?it/s]Seed set to 20776
+/opt/conda/lib/python3.10/site-packages/diffusers/pipelines/controlnet/pipeline_controlnet.py:1049: FutureWarning: `callback` is deprecated and will be removed in version 1.0.0. Passing `callback` as an input argument to `__call__` is deprecated, consider using `callback_on_step_end`
+  deprecate(
+/opt/conda/lib/python3.10/site-packages/diffusers/pipelines/controlnet/pipeline_controlnet.py:1055: FutureWarning: `callback_steps` is deprecated and will be removed in version 1.0.0. Passing `callback_steps` as an input argument to `__call__` is deprecated, consider using `callback_on_step_end`
+  deprecate(
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.87it/s]
+  0%|                                                                                              | 1/1000 [00:22<6:11:16, 22.30s/it, loss=0.602]Seed set to 17039
+
+
+
+
+
+
+
+
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:16<00:00,  2.86it/s]
+  0%|▏                                                                                             | 2/1000 [00:41<5:36:35, 20.24s/it, loss=0.673]Seed set to 38561
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  0%|▎                                                                                              | 3/1000 [01:00<5:26:23, 19.64s/it, loss=0.67]Seed set to 7796
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  0%|▍                                                                                             | 4/1000 [01:19<5:22:01, 19.40s/it, loss=0.666]Seed set to 54631
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]
+  0%|▍                                                                                             | 5/1000 [01:38<5:19:48, 19.29s/it, loss=0.663]Seed set to 39203
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  1%|▌                                                                                              | 6/1000 [01:57<5:17:58, 19.19s/it, loss=0.66]Seed set to 34777
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  1%|▋                                                                                             | 7/1000 [02:16<5:16:45, 19.14s/it, loss=0.657]Seed set to 62027
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  1%|▊                                                                                             | 8/1000 [02:35<5:15:51, 19.10s/it, loss=0.654]Seed set to 15133
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.81it/s]
+  1%|▊                                                                                             | 9/1000 [02:54<5:15:42, 19.11s/it, loss=0.651]Seed set to 27641
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.81it/s]
+  1%|▉                                                                                            | 10/1000 [03:13<5:15:18, 19.11s/it, loss=0.648]Seed set to 58517
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.80it/s]
+  1%|█                                                                                            | 11/1000 [03:32<5:15:01, 19.11s/it, loss=0.645]Seed set to 45313
+
+
+
+
+
+
+
+
+
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]
+  1%|█                                                                                            | 12/1000 [03:51<5:14:35, 19.11s/it, loss=0.642]Seed set to 42024
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  1%|█▏                                                                                           | 13/1000 [04:10<5:14:12, 19.10s/it, loss=0.639]Seed set to 61288
+
+ 10%|███████████                                                                                                   | 5/50 [00:01<00:15,  2.82it/s]
+  1%|█▎                                                                                           | 14/1000 [04:29<5:13:33, 19.08s/it, loss=0.636]Seed set to 31408
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.96it/s]
+Loss:  0.632479727268219
+  2%|█▍                                                                                           | 15/1000 [04:48<5:13:14, 19.08s/it, loss=0.632]Seed set to 25741
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.85it/s]
+  2%|█▍                                                                                           | 16/1000 [05:07<5:12:45, 19.07s/it, loss=0.629]Seed set to 38222
+
+
+
+
+
+ 72%|██████████████████████████████████████████████████████████████████████████████▍                              | 36/50 [00:12<00:04,  2.82it/s]
+  2%|█▌                                                                                           | 17/1000 [05:26<5:12:20, 19.06s/it, loss=0.626]Seed set to 43235
+
+
+
+
+
+
+
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.82it/s]
+Loss:  0.6230219602584839
+  2%|█▋                                                                                           | 18/1000 [05:46<5:11:57, 19.06s/it, loss=0.623]Seed set to 10780
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.85it/s]
+  2%|█▊                                                                                            | 19/1000 [06:05<5:11:29, 19.05s/it, loss=0.62]Seed set to 9691
+
+  2%|█▊                                                                                           | 20/1000 [06:24<5:11:01, 19.04s/it, loss=0.617]Seed set to 64143
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  2%|█▉                                                                                           | 21/1000 [06:43<5:10:38, 19.04s/it, loss=0.613]Seed set to 13925
+
+
+
+
+
+
+
+
+  2%|██                                                                                            | 22/1000 [07:02<5:10:17, 19.04s/it, loss=0.61]Seed set to 24791
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  2%|██▏                                                                                          | 23/1000 [07:21<5:09:53, 19.03s/it, loss=0.607]Seed set to 12005
+
+
+
+
+
+
+
+
+  2%|██▏                                                                                          | 24/1000 [07:40<5:09:39, 19.04s/it, loss=0.604]Seed set to 5308
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  2%|██▎                                                                                          | 25/1000 [07:59<5:09:16, 19.03s/it, loss=0.601]Seed set to 10888
+
+
+
+
+
+
+
+
+  3%|██▍                                                                                          | 26/1000 [08:18<5:08:54, 19.03s/it, loss=0.587]Seed set to 1876
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.89it/s]
+
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  3%|██▌                                                                                          | 27/1000 [08:37<5:08:29, 19.02s/it, loss=0.581]Seed set to 49996
+
+
+
+
+
+
+
+
+
+  3%|██▌                                                                                          | 28/1000 [08:56<5:08:16, 19.03s/it, loss=0.575]Seed set to 41388
+Loss:  0.5752462148666382
+
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  3%|██▋                                                                                           | 29/1000 [09:15<5:07:49, 19.02s/it, loss=0.57]Seed set to 11383
+
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  3%|██▊                                                                                          | 30/1000 [09:34<5:07:32, 19.02s/it, loss=0.565]Seed set to 30029
+
+
+
+
+
+
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.82it/s]
+
+  3%|██▉                                                                                           | 31/1000 [09:53<5:07:19, 19.03s/it, loss=0.56]Seed set to 6959
+
+
+
+
+
+
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]
+  3%|██▉                                                                                          | 32/1000 [10:12<5:06:58, 19.03s/it, loss=0.556]Seed set to 8985
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.82it/s]
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]
+  6%|██████▌                                                                                                       | 3/50 [00:01<00:16,  2.84it/s]Seed set to 6868
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.87it/s]Seed set to 6868
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.99it/s]Seed set to 6868
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.85it/s]Seed set to 6868
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.82it/s]Seed set to 6868
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 6868
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 6868
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 6868
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.81it/s]Seed set to 6868
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 6868
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 6868
+ 12%|█████████████▏                                                                                                | 6/50 [00:02<00:15,  2.82it/s]Seed set to 47778
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:12,  3.16it/s]Seed set to 47778
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.88it/s]Seed set to 47778
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.84it/s]Seed set to 47778
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.84it/s]Seed set to 47778
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 47778
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.89it/s]Seed set to 12968
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.98it/s]Seed set to 12968
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.83it/s]Seed set to 12968
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.82it/s]Seed set to 12968
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 12968
+ 66%|███████████████████████████████████████████████████████████████████████▉                                     | 33/50 [00:11<00:06,  2.82it/s]Seed set to 12968
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 12968
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 12968
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 12968
+ 12%|█████████████▏                                                                                                | 6/50 [00:02<00:15,  2.82it/s]Seed set to 39598
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:12,  3.16it/s]Seed set to 39598
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.87it/s]Seed set to 39598
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 39598
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 39598
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.82it/s]Seed set to 39598
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 39598
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 39598
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 39598
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 39598
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.92it/s]Seed set to 58978
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.97it/s]Seed set to 58978
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.83it/s]Seed set to 58978
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.82it/s]Seed set to 58978
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 58978
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.82it/s]Seed set to 58978
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 58978
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 58978
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 58978
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 58978
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 58978
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.87it/s]Seed set to 28744
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 28744
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 28744
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.82it/s]Seed set to 28744
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 28744
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]Seed set to 28744
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 28744
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 28744
+  6%|██████▌                                                                                                       | 3/50 [00:01<00:16,  2.83it/s]Seed set to 24634
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.87it/s]Seed set to 24634
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.97it/s]Seed set to 24634
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.84it/s]Seed set to 24634
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.82it/s]Seed set to 24634
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 24634
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.82it/s]Seed set to 24634
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.82it/s]Seed set to 24634
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 24634
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 24634
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 24634
+Loss:  0.5063604712486267
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:11,  3.16it/s]Seed set to 24634
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.87it/s]Seed set to 24634
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.87it/s]Seed set to 24634
+ 94%|██████████████████████████████████████████████████████████████████████████████████████████████████████▍      | 47/50 [00:16<00:01,  2.82it/s]Seed set to 24634
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 24634
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 24634
+Loss:  0.4980800151824951
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.86it/s]Seed set to 24634
+ 32%|██████████████████████████████████▉                                                                          | 16/50 [00:05<00:11,  2.93it/s]Seed set to 24634
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.84it/s]Seed set to 24634
+ 50%|██████████████████████████████████████████████████████▌                                                      | 25/50 [00:08<00:08,  2.82it/s]Seed set to 24634
+ 56%|█████████████████████████████████████████████████████████████                                                | 28/50 [00:09<00:07,  2.82it/s]Seed set to 24634
+ 84%|███████████████████████████████████████████████████████████████████████████████████████████▌                 | 42/50 [00:14<00:02,  2.82it/s]Seed set to 24634
+ 96%|████████████████████████████████████████████████████████████████████████████████████████████████████████▋    | 48/50 [00:16<00:00,  2.82it/s]Seed set to 24634
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 24634
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 24634
+Loss:  0.49016276001930237
+ 34%|█████████████████████████████████████                                                                        | 17/50 [00:05<00:11,  2.89it/s]Seed set to 24634
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 24634
+ 56%|█████████████████████████████████████████████████████████████                                                | 28/50 [00:09<00:07,  2.82it/s]Seed set to 24634
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.82it/s]Seed set to 24634
+ 72%|██████████████████████████████████████████████████████████████████████████████▍                              | 36/50 [00:12<00:04,  2.82it/s]Seed set to 24634
+  4%|████▍                                                                                                         | 2/50 [00:00<00:16,  2.84it/s]Seed set to 16001
+  4%|████▍                                                                                                         | 2/50 [00:00<00:16,  2.84it/s]Seed set to 16001
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:14,  2.81it/s]Seed set to 16001
+ 28%|██████████████████████████████▌                                                                              | 14/50 [00:04<00:11,  3.03it/s]Seed set to 16001
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.85it/s]Seed set to 16001
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.82it/s]Seed set to 16001
+ 62%|███████████████████████████████████████████████████████████████████▌                                         | 31/50 [00:10<00:06,  2.82it/s]Seed set to 16001
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 16001
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 16001
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.47292381525039673
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 16001
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.4641169309616089
+ 62%|███████████████████████████████████████████████████████████████████▌                                         | 31/50 [00:10<00:06,  2.82it/s]Seed set to 16001
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 16001
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 16001
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.45416730642318726
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:12,  3.09it/s]Seed set to 16001
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:11,  3.21it/s]Seed set to 16001
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.82it/s]Seed set to 16001
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 16001
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.44288334250450134
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.87it/s]Seed set to 16001
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.95it/s]Seed set to 16001
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.85it/s]Seed set to 16001
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.83it/s]Seed set to 16001
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 16001
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 16001
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 16001
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.43483781814575195
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.87it/s]Seed set to 16001
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 16001
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.83it/s]Seed set to 16001
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 16001
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 16001
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 16001
+Loss:  0.428336501121521
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.94it/s]Seed set to 16001
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.84it/s]Seed set to 16001
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.82it/s]Seed set to 16001
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 16001
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 16001
+ 84%|███████████████████████████████████████████████████████████████████████████████████████████▌                 | 42/50 [00:14<00:02,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.42217618227005005
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 16001
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 16001
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.82it/s]Seed set to 16001
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 16001
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.41628408432006836
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.83it/s]Seed set to 16001
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 16001
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.83it/s]Seed set to 16001
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 16001
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.41059038043022156
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 16001
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.82it/s]Seed set to 16001
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 16001
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 16001
+Loss:  0.40529680252075195
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.93it/s]Seed set to 16001
+ 34%|█████████████████████████████████████                                                                        | 17/50 [00:05<00:11,  2.87it/s]Seed set to 16001
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 16001
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 59030
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 59030
+ 12%|█████████████▏                                                                                                | 6/50 [00:02<00:15,  2.82it/s]Seed set to 59030
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:12,  3.16it/s]Seed set to 59030
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.86it/s]Seed set to 59030
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 59030
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 59030
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 59030
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 59030
+Loss:  0.3951233923435211
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.92it/s]Seed set to 59030
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.93it/s]Seed set to 59030
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.84it/s]Seed set to 59030
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.82it/s]Seed set to 59030
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 59030
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 59030
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 59030
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 59030
+Loss:  0.39005380868911743
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.86it/s]Seed set to 59030
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 59030
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.83it/s]Seed set to 59030
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.82it/s]Seed set to 59030
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 59030
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.83it/s]Seed set to 59030
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 59030
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.82it/s]Seed set to 59030
+Loss:  0.38503122329711914
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.92it/s]Seed set to 59030
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.83it/s]Seed set to 59030
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.83it/s]Seed set to 59030
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.83it/s]Seed set to 59030
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.82it/s]Seed set to 59030
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.82it/s]Seed set to 59030
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 59030
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.88it/s]Seed set to 52881
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.88it/s]Seed set to 52881
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.86it/s]Seed set to 52881
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 52881
+ 56%|█████████████████████████████████████████████████████████████                                                | 28/50 [00:09<00:07,  2.82it/s]Seed set to 52881
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.82it/s]Seed set to 52881
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 52881
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.82it/s]Seed set to 52881
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 52881
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 52881
+Loss:  0.37521010637283325
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:14,  2.87it/s]Seed set to 52881
+ 28%|██████████████████████████████▌                                                                              | 14/50 [00:04<00:12,  2.97it/s]Seed set to 52881
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.84it/s]Seed set to 52881
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.82it/s]Seed set to 52881
+ 62%|███████████████████████████████████████████████████████████████████▌                                         | 31/50 [00:10<00:06,  2.82it/s]Seed set to 52881
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 52881
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.82it/s]Seed set to 52881
+ 96%|████████████████████████████████████████████████████████████████████████████████████████████████████████▋    | 48/50 [00:16<00:00,  2.83it/s]Seed set to 52881
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 51930
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 51930
+ 10%|███████████                                                                                                   | 5/50 [00:01<00:15,  2.83it/s]Seed set to 51930
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:12,  3.15it/s]Seed set to 51930
+ 34%|█████████████████████████████████████                                                                        | 17/50 [00:05<00:11,  2.87it/s]Seed set to 51930
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 51930
+ 56%|█████████████████████████████████████████████████████████████                                                | 28/50 [00:09<00:07,  2.82it/s]Seed set to 51930
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.83it/s]Seed set to 51930
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 51930
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.82it/s]Seed set to 51930
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 51930
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 51930
+Loss:  0.36531132459640503
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:14,  2.88it/s]Seed set to 51930
+ 28%|██████████████████████████████▌                                                                              | 14/50 [00:04<00:12,  2.98it/s]Seed set to 51930
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.84it/s]Seed set to 51930
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.83it/s]Seed set to 51930
+ 62%|███████████████████████████████████████████████████████████████████▌                                         | 31/50 [00:10<00:06,  2.83it/s]Seed set to 51930
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.83it/s]Seed set to 51930
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.83it/s]Seed set to 51930
+ 96%|████████████████████████████████████████████████████████████████████████████████████████████████████████▋    | 48/50 [00:16<00:00,  2.83it/s]Seed set to 51930
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 54446
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 54446
+ 12%|█████████████▏                                                                                                | 6/50 [00:02<00:15,  2.82it/s]Seed set to 54446
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:11,  3.22it/s]Seed set to 54446
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.86it/s]Seed set to 54446
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 54446
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 54446
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.82it/s]Seed set to 54446
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 54446
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.83it/s]Seed set to 54446
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+Loss:  0.35519349575042725
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:14,  2.89it/s]Seed set to 54446
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:11,  2.93it/s]Seed set to 54446
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.84it/s]Seed set to 54446
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:09<00:08,  2.83it/s]Seed set to 54446
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 54446
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.82it/s]Seed set to 54446
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.83it/s]Seed set to 54446
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 54446
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+Loss:  0.35248956084251404
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]Seed set to 54446
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+Loss:  0.3508383631706238
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:14,  2.90it/s]Seed set to 54446
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 54446
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.83it/s]Seed set to 54446
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:15<00:02,  2.83it/s]Seed set to 54446
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.83it/s]Seed set to 54446
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.89it/s]Seed set to 52915
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.89it/s]Seed set to 52915
+ 12%|█████████████▏                                                                                                | 6/50 [00:02<00:15,  2.83it/s]Seed set to 52915
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:12,  3.15it/s]Seed set to 52915
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.86it/s]Seed set to 52915
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 52915
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.82it/s]Seed set to 52915
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.83it/s]Seed set to 52915
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 52915
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.83it/s]Seed set to 52915
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 52915
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 52915
+Loss:  0.346854031085968
+ 18%|███████████████████▊                                                                                          | 9/50 [00:03<00:13,  2.93it/s]Seed set to 52915
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:12,  2.91it/s]Seed set to 52915
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.82it/s]Seed set to 52915
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.81it/s]Seed set to 52915
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.81it/s]Seed set to 52915
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.82it/s]Seed set to 52915
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.82it/s]Seed set to 52915
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 52915
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.90it/s]Seed set to 31808
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.90it/s]Seed set to 31808
+ 12%|█████████████▏                                                                                                | 6/50 [00:02<00:15,  2.83it/s]Seed set to 31808
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:12,  3.01it/s]Seed set to 31808
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.85it/s]Seed set to 31808
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 31808
+ 60%|█████████████████████████████████████████████████████████████████▍                                           | 30/50 [00:10<00:07,  2.82it/s]Seed set to 31808
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.82it/s]Seed set to 31808
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 31808
+ 94%|██████████████████████████████████████████████████████████████████████████████████████████████████████▍      | 47/50 [00:16<00:01,  2.83it/s]Seed set to 31808
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 31808
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 31808
+Loss:  0.3477180600166321
+ 20%|█████████████████████▊                                                                                       | 10/50 [00:03<00:13,  3.03it/s]Seed set to 31808
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:12,  2.89it/s]Seed set to 31808
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.83it/s]Seed set to 31808
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.82it/s]Seed set to 31808
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.82it/s]Seed set to 31808
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.82it/s]Seed set to 31808
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.82it/s]Seed set to 31808
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 31808
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.89it/s]Seed set to 91818
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  2.89it/s]Seed set to 91818
+ 14%|███████████████▍                                                                                              | 7/50 [00:02<00:14,  2.89it/s]Seed set to 91818
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:12,  2.98it/s]Seed set to 91818
+ 38%|█████████████████████████████████████████▍                                                                   | 19/50 [00:06<00:10,  2.84it/s]Seed set to 91818
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 91818
+ 60%|█████████████████████████████████████████████████████████████████▍                                           | 30/50 [00:10<00:07,  2.83it/s]Seed set to 91818
+ 72%|██████████████████████████████████████████████████████████████████████████████▍                              | 36/50 [00:12<00:04,  2.83it/s]Seed set to 91818
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 91818
+ 94%|██████████████████████████████████████████████████████████████████████████████████████████████████████▍      | 47/50 [00:16<00:01,  2.82it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+Loss:  0.3373826742172241
+ 20%|█████████████████████▊                                                                                       | 10/50 [00:03<00:12,  3.25it/s]Seed set to 91818
+ 32%|██████████████████████████████████▉                                                                          | 16/50 [00:05<00:11,  2.86it/s]Seed set to 91818
+ 44%|███████████████████████████████████████████████▉                                                             | 22/50 [00:07<00:09,  2.83it/s]Seed set to 91818
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.83it/s]Seed set to 91818
+ 66%|███████████████████████████████████████████████████████████████████████▉                                     | 33/50 [00:11<00:06,  2.83it/s]Seed set to 91818
+ 78%|█████████████████████████████████████████████████████████████████████████████████████                        | 39/50 [00:13<00:03,  2.82it/s]Seed set to 91818
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.82it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+ 14%|███████████████▍                                                                                              | 7/50 [00:02<00:14,  2.93it/s]Seed set to 91818
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:12,  2.93it/s]Seed set to 91818
+ 38%|█████████████████████████████████████████▍                                                                   | 19/50 [00:06<00:10,  2.84it/s]Seed set to 91818
+ 50%|██████████████████████████████████████████████████████▌                                                      | 25/50 [00:08<00:08,  2.83it/s]Seed set to 91818
+ 60%|█████████████████████████████████████████████████████████████████▍                                           | 30/50 [00:10<00:07,  2.82it/s]Seed set to 91818
+ 72%|██████████████████████████████████████████████████████████████████████████████▍                              | 36/50 [00:12<00:04,  2.83it/s]Seed set to 91818
+ 84%|███████████████████████████████████████████████████████████████████████████████████████████▌                 | 42/50 [00:14<00:02,  2.83it/s]Seed set to 91818
+ 94%|██████████████████████████████████████████████████████████████████████████████████████████████████████▍      | 47/50 [00:16<00:01,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+Loss:  0.3296445310115814
+ 22%|███████████████████████▉                                                                                     | 11/50 [00:03<00:12,  3.02it/s]Seed set to 91818
+ 32%|██████████████████████████████████▉                                                                          | 16/50 [00:05<00:11,  2.85it/s]Seed set to 91818
+ 44%|███████████████████████████████████████████████▉                                                             | 22/50 [00:07<00:09,  2.83it/s]Seed set to 91818
+ 56%|█████████████████████████████████████████████████████████████                                                | 28/50 [00:09<00:07,  2.83it/s]Seed set to 91818
+ 66%|███████████████████████████████████████████████████████████████████████▉                                     | 33/50 [00:11<00:06,  2.83it/s]Seed set to 91818
+ 78%|█████████████████████████████████████████████████████████████████████████████████████                        | 39/50 [00:13<00:03,  2.83it/s]Seed set to 91818
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:13,  3.14it/s]Seed set to 91818
+ 28%|██████████████████████████████▌                                                                              | 14/50 [00:04<00:12,  2.88it/s]Seed set to 91818
+ 38%|█████████████████████████████████████████▍                                                                   | 19/50 [00:06<00:10,  2.83it/s]Seed set to 91818
+ 50%|██████████████████████████████████████████████████████▌                                                      | 25/50 [00:08<00:08,  2.83it/s]Seed set to 91818
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.83it/s]Seed set to 91818
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.83it/s]Seed set to 91818
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.82it/s]Seed set to 91818
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+Loss:  0.3231792747974396
+ 20%|█████████████████████▊                                                                                       | 10/50 [00:03<00:13,  3.02it/s]Seed set to 91818
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:12,  2.86it/s]Seed set to 91818
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.83it/s]Seed set to 91818
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.83it/s]Seed set to 91818
+ 66%|███████████████████████████████████████████████████████████████████████▉                                     | 33/50 [00:11<00:06,  2.83it/s]Seed set to 91818
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.83it/s]Seed set to 91818
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 91818
+ 14%|███████████████▍                                                                                              | 7/50 [00:02<00:13,  3.18it/s]Seed set to 91818
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:12,  2.89it/s]Seed set to 91818
+ 38%|█████████████████████████████████████████▍                                                                   | 19/50 [00:06<00:10,  2.83it/s]Seed set to 91818
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.83it/s]Seed set to 91818
+ 60%|█████████████████████████████████████████████████████████████████▍                                           | 30/50 [00:10<00:07,  2.83it/s]Seed set to 91818
+ 72%|██████████████████████████████████████████████████████████████████████████████▍                              | 36/50 [00:12<00:04,  2.83it/s]Seed set to 91818
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.83it/s]Seed set to 91818
+ 94%|██████████████████████████████████████████████████████████████████████████████████████████████████████▍      | 47/50 [00:16<00:01,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+Loss:  0.31738799810409546
+ 20%|█████████████████████▊                                                                                       | 10/50 [00:03<00:13,  2.96it/s]Seed set to 91818
+ 32%|██████████████████████████████████▉                                                                          | 16/50 [00:05<00:11,  2.84it/s]Seed set to 91818
+ 44%|███████████████████████████████████████████████▉                                                             | 22/50 [00:07<00:09,  2.83it/s]Seed set to 91818
+ 54%|██████████████████████████████████████████████████████████▊                                                  | 27/50 [00:09<00:08,  2.83it/s]Seed set to 91818
+ 66%|███████████████████████████████████████████████████████████████████████▉                                     | 33/50 [00:11<00:06,  2.83it/s]Seed set to 91818
+ 78%|█████████████████████████████████████████████████████████████████████████████████████                        | 39/50 [00:13<00:03,  2.83it/s]Seed set to 91818
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:13,  3.09it/s]Seed set to 91818
+ 28%|██████████████████████████████▌                                                                              | 14/50 [00:04<00:12,  2.86it/s]Seed set to 91818
+ 38%|█████████████████████████████████████████▍                                                                   | 19/50 [00:06<00:10,  2.83it/s]Seed set to 91818
+ 50%|██████████████████████████████████████████████████████▌                                                      | 25/50 [00:08<00:08,  2.82it/s]Seed set to 91818
+ 62%|███████████████████████████████████████████████████████████████████▌                                         | 31/50 [00:10<00:06,  2.83it/s]Seed set to 91818
+ 72%|██████████████████████████████████████████████████████████████████████████████▍                              | 36/50 [00:12<00:04,  2.83it/s]Seed set to 91818
+ 84%|███████████████████████████████████████████████████████████████████████████████████████████▌                 | 42/50 [00:14<00:02,  2.84it/s]Seed set to 91818
+ 96%|████████████████████████████████████████████████████████████████████████████████████████████████████████▋    | 48/50 [00:16<00:00,  2.84it/s]Seed set to 91818
+  8%|███████▎                                                                                     | 78/1000 [25:06<4:51:40, 18.98s/it, loss=0.312]Seed set to 91818
+  8%|███████▎                                                                                     | 78/1000 [25:06<4:51:40, 18.98s/it, loss=0.312]Seed set to 91818
+Loss:  0.31219395995140076
+ 22%|███████████████████████▉                                                                                     | 11/50 [00:03<00:13,  2.88it/s]Seed set to 91818
+ 34%|█████████████████████████████████████                                                                        | 17/50 [00:05<00:11,  2.84it/s]Seed set to 91818
+ 44%|███████████████████████████████████████████████▉                                                             | 22/50 [00:07<00:09,  2.82it/s]Seed set to 91818
+ 56%|█████████████████████████████████████████████████████████████                                                | 28/50 [00:09<00:07,  2.82it/s]Seed set to 91818
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.83it/s]Seed set to 91818
+ 78%|█████████████████████████████████████████████████████████████████████████████████████                        | 39/50 [00:13<00:03,  2.83it/s]Seed set to 91818
+ 90%|██████████████████████████████████████████████████████████████████████████████████████████████████           | 45/50 [00:15<00:01,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 91818
+ 16%|█████████████████▌                                                                                            | 8/50 [00:02<00:13,  3.00it/s]Seed set to 91818
+ 28%|██████████████████████████████▌                                                                              | 14/50 [00:04<00:12,  2.84it/s]Seed set to 91818
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.83it/s]Seed set to 91818
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:08<00:08,  2.83it/s]Seed set to 91818
+ 62%|███████████████████████████████████████████████████████████████████▌                                         | 31/50 [00:10<00:06,  2.83it/s]Seed set to 91818
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.83it/s]Seed set to 91818
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:14<00:02,  2.83it/s]Seed set to 91818
+ 96%|████████████████████████████████████████████████████████████████████████████████████████████████████████▋    | 48/50 [00:16<00:00,  2.83it/s]Seed set to 91818
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 64188
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 64188
+ 12%|█████████████▏                                                                                                | 6/50 [00:01<00:13,  3.15it/s]Seed set to 64188
+ 22%|███████████████████████▉                                                                                     | 11/50 [00:03<00:13,  2.87it/s]Seed set to 64188
+ 34%|█████████████████████████████████████                                                                        | 17/50 [00:05<00:11,  2.83it/s]Seed set to 64188
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 64188
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.83it/s]Seed set to 64188
+ 68%|██████████████████████████████████████████████████████████████████████████                                   | 34/50 [00:11<00:05,  2.83it/s]Seed set to 64188
+ 80%|███████████████████████████████████████████████████████████████████████████████████████▏                     | 40/50 [00:13<00:03,  2.82it/s]Seed set to 64188
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.82it/s]Seed set to 64188
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 64188
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 64188
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.83it/s]Seed set to 64188
+ 18%|███████████████████▊                                                                                          | 9/50 [00:02<00:13,  2.94it/s]Seed set to 64188
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:12,  2.84it/s]Seed set to 64188
+ 40%|███████████████████████████████████████████▌                                                                 | 20/50 [00:06<00:10,  2.82it/s]Seed set to 64188
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:08<00:08,  2.82it/s]Seed set to 64188
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.83it/s]Seed set to 64188
+ 74%|████████████████████████████████████████████████████████████████████████████████▋                            | 37/50 [00:12<00:04,  2.82it/s]Seed set to 64188
+ 86%|█████████████████████████████████████████████████████████████████████████████████████████████▋               | 43/50 [00:14<00:02,  2.83it/s]Seed set to 64188
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.83it/s]Seed set to 64188
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 31808
+  0%|                                                                                                                      | 0/50 [00:00<?, ?it/s]Seed set to 31808
+ 12%|█████████████▏                                                                                                | 6/50 [00:01<00:14,  3.06it/s]Seed set to 31808
+ 24%|██████████████████████████▏                                                                                  | 12/50 [00:04<00:13,  2.86it/s]Seed set to 31808
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.84it/s]Seed set to 31808
+ 46%|██████████████████████████████████████████████████▏                                                          | 23/50 [00:07<00:09,  2.83it/s]Seed set to 31808
+ 58%|███████████████████████████████████████████████████████████████▏                                             | 29/50 [00:10<00:07,  2.83it/s]Seed set to 31808
+ 70%|████████████████████████████████████████████████████████████████████████████▎                                | 35/50 [00:12<00:05,  2.83it/s]Seed set to 31808
+ 82%|█████████████████████████████████████████████████████████████████████████████████████████▍                   | 41/50 [00:14<00:03,  2.84it/s]Seed set to 31808
+ 92%|████████████████████████████████████████████████████████████████████████████████████████████████████▎        | 46/50 [00:16<00:01,  2.83it/s]Seed set to 31808
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 31808
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:17<00:00,  2.84it/s]Seed set to 31808
+Loss:  0.2932645082473755
+ 18%|███████████████████▊                                                                                          | 9/50 [00:02<00:14,  2.90it/s]Seed set to 31808
+ 30%|████████████████████████████████▋                                                                            | 15/50 [00:05<00:12,  2.84it/s]Seed set to 31808
+ 42%|█████████████████████████████████████████████▊                                                               | 21/50 [00:07<00:10,  2.83it/s]Seed set to 31808
+ 52%|████████████████████████████████████████████████████████▋                                                    | 26/50 [00:08<00:08,  2.83it/s]Seed set to 31808
+ 64%|█████████████████████████████████████████████████████████████████████▊                                       | 32/50 [00:11<00:06,  2.83it/s]Seed set to 31808
+ 76%|██████████████████████████████████████████████████████████████████████████████████▊                          | 38/50 [00:13<00:04,  2.83it/s]Seed set to 31808
+ 88%|███████████████████████████████████████████████████████████████████████████████████████████████▉             | 44/50 [00:15<00:02,  2.83it/s]Seed set to 31808
+ 98%|██████████████████████████████████████████████████████████████████████████████████████████████████████████▊  | 49/50 [00:17<00:00,  2.82it/s]Seed set to 31808
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  3.06it/s]Seed set to 91818
+  2%|██▏                                                                                                           | 1/50 [00:00<00:16,  3.06it/s]Seed set to 91818
+ 14%|███████████████▍                                                                                              | 7/50 [00:02<00:14,  2.96it/s]Seed set to 91818
+ 26%|████████████████████████████▎                                                                                | 13/50 [00:04<00:13,  2.83it/s]Seed set to 91818
+ 36%|███████████████████████████████████████▏                                                                     | 18/50 [00:06<00:11,  2.82it/s]Seed set to 91818
+ 48%|████████████████████████████████████████████████████▎                                                        | 24/50 [00:08<00:09,  2.82it/s]Seed set to 91818
