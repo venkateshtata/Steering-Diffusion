@@ -6,7 +6,7 @@ from annotator.hed import HEDdetector, nms
 from diffusers.utils import load_image
 import cv2
 import einops
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, UNet2DConditionModel
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, DDPMScheduler
 import torchvision.transforms as transforms
 from transformers import CLIPTextModel, CLIPTokenizer
 from safetensors.torch import save_file
@@ -17,14 +17,6 @@ import random
 import torch.nn.functional as F
 import sys
 import wandb 
-import os
-from diffusers.pipelines import DiffusionPipeline
-
-
-# from control_lora import ControlLoRAModel
-from models import ControlLoRA, ControlLoRACrossAttnProcessor
-
-
 
 def save_model_with_removal(path, params):
     if os.path.exists(path):
@@ -35,10 +27,8 @@ def save_model_with_removal(path, params):
 previous_unet_save_path = None
 previous_cnet_save_path = None
 
-# wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
-# wandb.init(project="sketch-erase")
-
-
+wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
+wandb.init(project="sketch-erase")
 
 class_name = sys.argv[1]
 model_name = "runwayml/stable-diffusion-v1-5"
@@ -46,9 +36,12 @@ condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 ddim_steps = 50
 iterations = 1000
-intermediate_model_dir = "intermediate_models"
+intermediate_model_dir = "intermediate_models_new"
 controlnet_path = "converted_model"
 save_interval = 50
+
+# Initialize the noise scheduler
+noise_scheduler = DDPMScheduler()
 
 # Initialize HED detector
 apply_hed = HEDdetector()
@@ -87,7 +80,6 @@ device = f'cuda:{sys.argv[2]}'
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
-
 def move_to_device(batch_encoding, device):
     return {key: tensor.to(device) if tensor.dtype == torch.int64 else tensor.to(device, torch.float32) for key, tensor in batch_encoding.items()}
 
@@ -113,7 +105,7 @@ def diffuse_to_random_timestep(latent_vector, timesteps, t, device):
     return latent_noisy
 
 @torch.no_grad()
-def sampler(pipeline, control_lora, size, image_path, t):
+def sampler(pipeline, size, image_path, t):
     a_prompt = "best quality, extremely detailed"
     n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
     n_samples = 1
@@ -146,67 +138,67 @@ def sampler(pipeline, control_lora, size, image_path, t):
     pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
     
     generator = torch.manual_seed(0)
-
-    _ = control_lora(control).control_states
+    callback = LatentCaptureCallback(target_step=t, timesteps_mapping=timesteps_mapping)
     
     output = pipeline(
         prompt=prompt,
         negative_prompt=negative_prompt,
+        image=control,
         num_inference_steps=50,
         guidance_scale=7.5,
+        callback=callback,
+        callback_steps=1,
         generator=generator,
-        height = size,
-        width = size
-        ).images[0]
-
-
+        return_dict=True,
+        )
 
     # Retrieve the captured latents
-    captured_latents = encode_image(output, pipeline.vae.to(device, torch.float32))
+    captured_latents = callback.captured_latents
 
     return captured_latents.to(device, torch.float32)
 
-def apply_unet_model(unet, x_noisy, t, cond):
-    cond_txt = torch.cat(cond['c_crossattn'], 1)
-    
-    if cond['c_concat'] is not None:
-        cond_img = torch.cat(cond['c_concat'], 1)
-        # Resize cond_img if necessary to match x_noisy's dimensions
-        cond_img = F.interpolate(cond_img, size=x_noisy.shape[2:], mode='bilinear', align_corners=False)
-    else:
-        cond_img = None
-    
-    if cond_img is not None:
-        # Add image condition to the noisy input
-        x_noisy = x_noisy + cond_img
+def apply_unet_model(unet, vae, image_path, text_encoder, tokenizer, prompt, device, weight_dtype, noise_scheduler):
+    # Load and preprocess the condition image
+    image = load_image(image_path)
+    image_tensor = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5])
+    ])(image).unsqueeze(0).to(device, dtype=weight_dtype)
 
-    # Forward pass through UNet
-    eps = unet(x_noisy, t, encoder_hidden_states=cond_txt).sample
-    
-    return eps
+    # Encode the condition image to latents
+    latents = vae.encode(image_tensor).latent_dist.sample() * vae.config.scaling_factor
 
+    # Sample noise to add to the latents
+    noise = torch.randn_like(latents)
+    bsz = latents.shape[0]
 
+    # Sample a random timestep for each image
+    timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device)
+    timesteps = timesteps.long()
 
-base_model = "runwayml/stable-diffusion-v1-5"
+    # Add noise to the latents according to the noise magnitude at each timestep
+    noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
-unet = UNet2DConditionModel.from_pretrained(
-    base_model, subfolder="unet", torch_dtype=torch.float32
-)
+    # Tokenize the prompt for text conditioning
+    text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
+    text_inputs = move_to_device(text_inputs, device)
+    encoder_hidden_states = text_encoder(text_inputs['input_ids'])[0]
 
-control_lora = ControlLoRA.from_pretrained('HighCWu/ControlLoRA', subfolder="sd-diffusiondb-canny-model-control-lora")
-control_lora = control_lora.to(device)
+    # Predict the noise residual
+    model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
-# controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
+    return model_pred
+
+controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker=None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=control_lora, torch_dtype=torch.float32, use_safetensors=True, device=device, safety_checker = None
+    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device=device, safety_checker=None
 )
 
-# controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
-model = DiffusionPipeline.from_pretrained(
-    base_model, safety_checker=None
+controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker=None)
+model = StableDiffusionControlNetPipeline.from_pretrained(
+    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device=device, safety_checker=None
 )
-
-# print("model: ", model.key())
 
 # Freeze the original model parameters
 for param in model_orig.controlnet.parameters():
@@ -243,27 +235,20 @@ for name, param in model.unet.named_parameters():
     elif unet_train_method == 'selflayer':
         if 'attn1' in name:
             if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
-                # print(name)
                 parameters.append(param)
 
-
-# controlnet_train_blocks = "controlnet_down_blocks"
-# for name, param in model.controlnet.named_parameters():
-#     if controlnet_train_blocks in name:
-#         parameters.append(param)
+controlnet_train_blocks = "attentions"
+for name, param in model.controlnet.named_parameters():
+    if controlnet_train_blocks in name:
+        parameters.append(param)
 
 print("controlnet parameters count: ", len(parameters))
 
-
-
-
-                
 model.to(device)
 
 # Set the model to training mode
 model.unet.train()
-# model.train()
-
+model.controlnet.train()
 
 # Set up the optimizer and loss function
 optimizer = torch.optim.Adam(parameters, lr=1e-5)
@@ -272,18 +257,17 @@ criteria = torch.nn.MSELoss()
 def print_tensor_stats(tensor, name):
     print(f'{name} stats: min={tensor.min().item()}, max={tensor.max().item()}, mean={tensor.mean().item()}, std={tensor.std().item()}')
 
-
 config = {
     "model_name": model_name,
     "ddim_steps": ddim_steps,
     "iterations": iterations,
     "unet_train_method": unet_train_method,
-    # "controlnet_train_blocks": controlnet_train_blocks,
+    "controlnet_train_blocks": controlnet_train_blocks,
     "learning_rate": 1e-5,
     "class_name": class_name
 }
 
-# wandb.config.update(config)
+wandb.config.update(config)
 
 pbar = tqdm(range(iterations))
 for i in pbar:
@@ -295,25 +279,31 @@ for i in pbar:
     model_orig.to(device)
 
     with torch.no_grad():
-        z = sampler(model, control_lora, 512, condition_image, t)
+        z = sampler(model, 512, condition_image, t)
 
         a_prompt = "best quality, extremely detailed"
-
         unprompt = " " + a_prompt
-        latent_uncondition_image = encode_image(load_image(uncondition_image), model.vae.to(device, torch.float32)).detach()
+        
+        uncond_image_tensor = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5])
+        ])(load_image(uncondition_image)).unsqueeze(0).to(device, torch.float32)
+
+        latent_uncondition_image = encode_image(load_image(condition_image), model_orig.vae.to(device, torch.float32)).detach()
         text_inputs = tokenizer(unprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
         text_embeddings = text_encoder(text_inputs["input_ids"]).last_hidden_state.detach()
         uncond = {'c_concat': [latent_uncondition_image], 'c_crossattn': [text_embeddings]}
-        e_0 = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), uncond)
+        e_0 = apply_unet_model(model_orig.unet, model.vae, uncondition_image, text_encoder, tokenizer, unprompt, device, torch.float32, noise_scheduler)
 
         cprompt = class_name + a_prompt
-        latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
+        latent_condition_image = encode_image(load_image(condition_image), model_orig.vae.to(device, torch.float32)).detach()
         text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
         text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
         cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
-        e_p = apply_unet_model(model_orig.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
+        e_p = apply_unet_model(model_orig.unet, model.vae, condition_image, text_encoder, tokenizer, cprompt, device, torch.float32, noise_scheduler)
 
     latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
     text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
@@ -321,7 +311,7 @@ for i in pbar:
     text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
     cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
 
-    e_n = apply_unet_model(model.unet.to(device, torch.float32), z.to(device, torch.float32), t.to(device, torch.float32), cond)
+    e_n = apply_unet_model(model.unet, model.vae, condition_image, text_encoder, tokenizer, cprompt, device, torch.float32, noise_scheduler)
 
     e_0 = e_0.detach()
     e_p = e_p.detach()
@@ -330,7 +320,7 @@ for i in pbar:
     loss = criteria(e_n, e_0 - eta * (e_p - e_0))
 
     print("Loss: ", loss.item())
-    # wandb.log({"loss": loss.item()})
+    wandb.log({"loss": loss.item()})
 
     loss.backward()
     pbar.set_postfix({"loss": loss.item()})
