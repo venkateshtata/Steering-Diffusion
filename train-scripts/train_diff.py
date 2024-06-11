@@ -39,9 +39,9 @@ condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 ddim_steps = 50
 iterations = 1000
-intermediate_model_dir = "intermediate_models_loss3"
+intermediate_model_dir = "intermediate_models"
 controlnet_path = "converted_model"
-save_interval = 100
+save_interval = 50
 
 # Initialize HED detector
 apply_hed = HEDdetector()
@@ -193,7 +193,6 @@ model = StableDiffusionControlNetPipeline.from_pretrained(
 for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
-# Define the train method
 unet_train_method = 'xattn'
 
 parameters = []
@@ -229,39 +228,35 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 
-controlnet_train_method = "notime"
+controlnet_train_blocks = "controlnet_down_blocks"
 for name, param in model.controlnet.named_parameters():
-    if controlnet_train_method == 'noxattn':
-        if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
-            print("noxattn")
-        else:
-            parameters.append(param)
-    elif controlnet_train_method == 'selfattn':
-        if 'attn1' in name:
-            parameters.append(param)
-    elif controlnet_train_method == 'xattn':
-        if 'attn2' in name:
-            parameters.append(param)
-    elif controlnet_train_method == 'allattn':
-        if 'attn1' in name or 'attn2' in name:
-            parameters.append(param)
-    elif controlnet_train_method == 'full':
+    if controlnet_train_blocks in name:
         parameters.append(param)
-    elif controlnet_train_method == 'notime':
-        if not (name.startswith('out.') or 'time_embed' in name):
-            parameters.append(param)
-    elif controlnet_train_method == 'xlayer':
-        if 'attn2' in name:
-            if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
-                parameters.append(param)
-    elif controlnet_train_method == 'selflayer':
-        if 'attn1' in name:
-            if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
-                # print(name)
-                parameters.append(param)
+
+print("controlnet parameters count: ", len(parameters))
+
+
+# import csv
+# # Assuming 'model' is your pre-defined model
+# named_parameters = model.controlnet.named_parameters()
+# # Create a list of dictionaries to store parameter names and values
+# parameters_list = []
+# for name, param in named_parameters:
+#     parameters_list.append({"Parameter Name": name})
+# Define the CSV file name
+# csv_file_name = "model_named_parameters.csv"
+# Write to CSV file
+# with open(csv_file_name, mode='w', newline='') as csv_file:
+#     writer = csv.DictWriter(csv_file, fieldnames=["Parameter Name"])
+#     writer.writeheader()
+#     for param in parameters_list:
+#         writer.writerow(param)
+# print(f"Parameters have been saved to {csv_file_name}")
+
 
                 
 model.to(device)
+
 # Set the model to training mode
 model.unet.train()
 model.controlnet.train()
@@ -280,7 +275,7 @@ config = {
     "ddim_steps": ddim_steps,
     "iterations": iterations,
     "unet_train_method": unet_train_method,
-    "controlnet_train_method": controlnet_train_method,
+    "controlnet_train_blocks": controlnet_train_blocks,
     "learning_rate": 1e-5,
     "class_name": class_name
 }
@@ -343,7 +338,7 @@ for i in pbar:
     if (i + 1) % save_interval == 0:
         # Define current file paths
         current_unet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
-        current_cnet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_method}/', f'{class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
+        current_cnet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_blocks}/', f'{class_name}_{controlnet_train_blocks}_{i+1}_cnet.safetensors')
 
         # Create directories if they don't exist
         os.makedirs(os.path.dirname(current_unet_save_path), exist_ok=True)
@@ -362,7 +357,7 @@ for i in pbar:
 
         cnet_params = model.controlnet.state_dict()
         save_model_with_removal(current_cnet_save_path, cnet_params)
-        print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_method}_{i+1}_cnet.safetensors')
+        print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_blocks}_{i+1}_cnet.safetensors')
 
         # Update previous file paths
         previous_unet_save_path = current_unet_save_path

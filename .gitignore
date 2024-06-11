@@ -4,4 +4,5 @@ sketchy_dataset/
 trained_model/
 converted_model/
 intermediate_models/
+intermediate_models_loss3/
 wandb/
