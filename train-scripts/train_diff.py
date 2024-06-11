@@ -6,7 +6,7 @@ from annotator.hed import HEDdetector, nms
 from diffusers.utils import load_image
 import cv2
 import einops
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, UNet2DConditionModel
 import torchvision.transforms as transforms
 from transformers import CLIPTextModel, CLIPTokenizer
 from safetensors.torch import save_file
@@ -19,6 +19,9 @@ import sys
 import wandb 
 import os
 
+from control_lora import ControlLoRAModel
+
+
 def save_model_with_removal(path, params):
     if os.path.exists(path):
         os.remove(path)
@@ -28,8 +31,8 @@ def save_model_with_removal(path, params):
 previous_unet_save_path = None
 previous_cnet_save_path = None
 
-wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
-wandb.init(project="sketch-erase")
+# wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
+# wandb.init(project="sketch-erase")
 
 
 
@@ -179,15 +182,28 @@ def apply_unet_model(unet, x_noisy, t, cond):
     return eps
 
 
-controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
+
+base_model = "runwayml/stable-diffusion-v1-5"
+
+unet = UNet2DConditionModel.from_pretrained(
+    base_model, subfolder="unet", torch_dtype=torch.float32
+)
+control_lora = ControlLoRAModel.from_pretrained(
+    "HighCWu/sd-control-lora-face-landmarks", torch_dtype=torch.float32
+)
+control_lora.tie_weights(unet)
+
+# controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device=device, safety_checker = None
+    model_name, controlnet=control_lora, torch_dtype=torch.float32, use_safetensors=True, device=device, safety_checker = None
 )
 
-controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
+# controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
 model = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device=device, safety_checker = None
+    model_name, controlnet=control_lora, use_safetensors=True, torch_dtype=torch.float32, device=device, safety_checker = None
 )
+
+# print("model: ", model.key())
 
 # Freeze the original model parameters
 for param in model_orig.controlnet.parameters():
@@ -236,22 +252,6 @@ for name, param in model.controlnet.named_parameters():
 print("controlnet parameters count: ", len(parameters))
 
 
-# import csv
-# # Assuming 'model' is your pre-defined model
-# named_parameters = model.controlnet.named_parameters()
-# # Create a list of dictionaries to store parameter names and values
-# parameters_list = []
-# for name, param in named_parameters:
-#     parameters_list.append({"Parameter Name": name})
-# Define the CSV file name
-# csv_file_name = "model_named_parameters.csv"
-# Write to CSV file
-# with open(csv_file_name, mode='w', newline='') as csv_file:
-#     writer = csv.DictWriter(csv_file, fieldnames=["Parameter Name"])
-#     writer.writeheader()
-#     for param in parameters_list:
-#         writer.writerow(param)
-# print(f"Parameters have been saved to {csv_file_name}")
 
 
                 
@@ -280,7 +280,7 @@ config = {
     "class_name": class_name
 }
 
-wandb.config.update(config)
+# wandb.config.update(config)
 
 pbar = tqdm(range(iterations))
 for i in pbar:
@@ -327,7 +327,7 @@ for i in pbar:
     loss = criteria(e_n, e_0 - eta * (e_p - e_0))
 
     print("Loss: ", loss.item())
-    wandb.log({"loss": loss.item()})
+    # wandb.log({"loss": loss.item()})
 
     loss.backward()
     pbar.set_postfix({"loss": loss.item()})
