@@ -18,8 +18,12 @@ import torch.nn.functional as F
 import sys
 import wandb 
 import os
+from diffusers.pipelines import DiffusionPipeline
 
-from control_lora import ControlLoRAModel
+
+# from control_lora import ControlLoRAModel
+from models import ControlLoRA, ControlLoRACrossAttnProcessor
+
 
 
 def save_model_with_removal(path, params):
@@ -109,7 +113,7 @@ def diffuse_to_random_timestep(latent_vector, timesteps, t, device):
     return latent_noisy
 
 @torch.no_grad()
-def sampler(pipeline, size, image_path, t):
+def sampler(pipeline, control_lora, size, image_path, t):
     a_prompt = "best quality, extremely detailed"
     n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
     n_samples = 1
@@ -142,25 +146,25 @@ def sampler(pipeline, size, image_path, t):
     pipeline.scheduler = UniPCMultistepScheduler.from_config(pipeline.scheduler.config)
     
     generator = torch.manual_seed(0)
-    callback = LatentCaptureCallback(target_step=t, timesteps_mapping=timesteps_mapping)
+
+    _ = control_lora(control).control_states
     
     output = pipeline(
         prompt=prompt,
         negative_prompt=negative_prompt,
-        image=control,
         num_inference_steps=50,
         guidance_scale=7.5,
-        callback=callback,
-        callback_steps=1,
         generator=generator,
-        return_dict=True,
-        )
+        height = size,
+        width = size
+        ).images[0]
+
+
 
     # Retrieve the captured latents
-    captured_latents = callback.captured_latents
+    captured_latents = encode_image(output, pipeline.vae.to(device, torch.float32))
 
     return captured_latents.to(device, torch.float32)
-
 
 def apply_unet_model(unet, x_noisy, t, cond):
     cond_txt = torch.cat(cond['c_crossattn'], 1)
@@ -188,10 +192,9 @@ base_model = "runwayml/stable-diffusion-v1-5"
 unet = UNet2DConditionModel.from_pretrained(
     base_model, subfolder="unet", torch_dtype=torch.float32
 )
-control_lora = ControlLoRAModel.from_pretrained(
-    "HighCWu/sd-control-lora-face-landmarks", torch_dtype=torch.float32
-)
-control_lora.tie_weights(unet)
+
+control_lora = ControlLoRA.from_pretrained('HighCWu/ControlLoRA', subfolder="sd-diffusiondb-canny-model-control-lora")
+control_lora = control_lora.to(device)
 
 # controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
@@ -199,8 +202,8 @@ model_orig = StableDiffusionControlNetPipeline.from_pretrained(
 )
 
 # controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker = None)
-model = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=control_lora, use_safetensors=True, torch_dtype=torch.float32, device=device, safety_checker = None
+model = DiffusionPipeline.from_pretrained(
+    base_model, safety_checker=None
 )
 
 # print("model: ", model.key())
@@ -244,10 +247,10 @@ for name, param in model.unet.named_parameters():
                 parameters.append(param)
 
 
-controlnet_train_blocks = "controlnet_down_blocks"
-for name, param in model.controlnet.named_parameters():
-    if controlnet_train_blocks in name:
-        parameters.append(param)
+# controlnet_train_blocks = "controlnet_down_blocks"
+# for name, param in model.controlnet.named_parameters():
+#     if controlnet_train_blocks in name:
+#         parameters.append(param)
 
 print("controlnet parameters count: ", len(parameters))
 
@@ -259,7 +262,7 @@ model.to(device)
 
 # Set the model to training mode
 model.unet.train()
-model.controlnet.train()
+# model.train()
 
 
 # Set up the optimizer and loss function
@@ -275,7 +278,7 @@ config = {
     "ddim_steps": ddim_steps,
     "iterations": iterations,
     "unet_train_method": unet_train_method,
-    "controlnet_train_blocks": controlnet_train_blocks,
+    # "controlnet_train_blocks": controlnet_train_blocks,
     "learning_rate": 1e-5,
     "class_name": class_name
 }
@@ -292,7 +295,7 @@ for i in pbar:
     model_orig.to(device)
 
     with torch.no_grad():
-        z = sampler(model, 512, condition_image, t)
+        z = sampler(model, control_lora, 512, condition_image, t)
 
         a_prompt = "best quality, extremely detailed"
 
