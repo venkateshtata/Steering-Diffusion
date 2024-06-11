@@ -15,8 +15,8 @@ erase_class_name = sys.argv[1]
 
 test_class_name = sys.argv[2]
 
-unet_model_path = "/root/Steering-Diffusion/intermediate_models_new/cat_unet_xattn/cat_xattn_100_unet.safetensors"
-controlnet_model_path = "/root/Steering-Diffusion/intermediate_models_new/cat_cnet_attentions/cat_attentions_100_cnet.safetensors"
+unet_model_path = "/root/Steering-Diffusion/intermediate_models_new/cat_unet_xattn/cat_xattn_300_unet.safetensors"
+controlnet_model_path = "/root/Steering-Diffusion/intermediate_models_new/cat_cnet_attentions/cat_attentions_300_cnet.safetensors"
 
 iterations = unet_model_path.split(".")[0].split("_")[-2]
 unet_train_method = unet_model_path.split(".")[0].split("_")[-3]
