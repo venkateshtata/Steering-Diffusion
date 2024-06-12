@@ -418,7 +418,7 @@ for i in pbar:
             composite_image.paste(image, (512 * idx, 0))
 
         # Save the composite image to wandb
-        filename = f'{c_name}_{unet_train_method}_{controlnet_train_blocks}_{i+1}.png'
+        filename = f'{class_name}_{unet_train_method}_{controlnet_train_blocks}_{i+1}.png'
         save_image_to_wandb(composite_image, filename)
 
 print("Training completed.")
