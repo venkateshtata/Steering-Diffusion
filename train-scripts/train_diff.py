@@ -18,6 +18,16 @@ import torch.nn.functional as F
 import sys
 import wandb 
 
+a_prompt = "best quality, extremely detailed"
+n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
+
+def save_image_to_wandb(image, filename):
+    image_path = os.path.join("wandb_images", filename)
+    os.makedirs(os.path.dirname(image_path), exist_ok=True)
+    image.save(image_path)
+    wandb.log({filename: wandb.Image(image_path)})
+
+
 def save_model_with_removal(path, params):
     if os.path.exists(path):
         os.remove(path)
@@ -35,8 +45,8 @@ model_name = "runwayml/stable-diffusion-v1-5"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
 ddim_steps = 50
-iterations = 1000
-intermediate_model_dir = "intermediate_models_new"
+iterations = 500
+intermediate_model_dir = "intermediate_models"
 controlnet_path = "converted_model"
 save_interval = 50
 
@@ -269,6 +279,7 @@ config = {
 
 wandb.config.update(config)
 
+# In your training loop:
 pbar = tqdm(range(iterations))
 for i in pbar:
     optimizer.zero_grad()
@@ -290,7 +301,7 @@ for i in pbar:
             transforms.Normalize([0.5], [0.5])
         ])(load_image(uncondition_image)).unsqueeze(0).to(device, torch.float32)
 
-        latent_uncondition_image = encode_image(load_image(condition_image), model_orig.vae.to(device, torch.float32)).detach()
+        latent_uncondition_image = encode_image(load_image(uncondition_image), model_orig.vae.to(device, torch.float32)).detach()
         text_inputs = tokenizer(unprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
         text_inputs = move_to_device(text_inputs, device)
         text_embeddings = text_encoder(text_inputs["input_ids"]).last_hidden_state.detach()
@@ -355,3 +366,59 @@ for i in pbar:
         # Update previous file paths
         previous_unet_save_path = current_unet_save_path
         previous_cnet_save_path = current_cnet_save_path
+
+        # Array of class names to generate images for
+        class_names = ["airplane", "apple", "axe", "banana", "bicycle", "cat", "dog", "fish", "guitar", "mushroom"]
+
+        # List to store generated images
+        generated_images = []
+
+        # Generate and save images for each class
+        for c_name in class_names:
+            # Define prompt and load condition image for the current class
+            condition_image = f'test_input_images/{c_name}_sketch.png'
+
+            # Process the condition image to get control tensor
+            image = load_image_as_array(condition_image)
+            input_image = HWC3(image)
+            detected_map = apply_hed(resize_image(input_image, 512))
+            detected_map = HWC3(detected_map)
+            img = resize_image(input_image, 512)
+            H, W, C = img.shape
+
+            detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+            detected_map = nms(detected_map, 127, 3.0)
+            detected_map = cv2.GaussianBlur(detected_map, (0, 0), 3.0)
+            detected_map[detected_map > 4] = 255
+            detected_map[detected_map < 255] = 0
+
+            control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
+            control = torch.stack([control for _ in range(1)], dim=0)
+            cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
+            
+            
+
+            # Generate and save an image to wandb
+            generator = torch.manual_seed(0)
+            prompt = a_prompt + c_name
+            output_image = model(
+                prompt,
+                negative_prompt=n_prompt,
+                num_inference_steps=50,
+                generator=generator,
+                image=cond_control,
+            ).images[0]
+
+            # Save the generated image to the list
+            generated_images.append(output_image)
+
+        # Create a composite image
+        composite_image = Image.new('RGB', (512 * len(generated_images), 512))
+        for idx, image in enumerate(generated_images):
+            composite_image.paste(image, (512 * idx, 0))
+
+        # Save the composite image to wandb
+        filename = f'{c_name}_{unet_train_method}_{controlnet_train_blocks}_{i+1}.png'
+        save_image_to_wandb(composite_image, filename)
+
+print("Training completed.")
