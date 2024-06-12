@@ -37,9 +37,6 @@ def save_model_with_removal(path, params):
 previous_unet_save_path = None
 previous_cnet_save_path = None
 
-wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
-wandb.init(project="sketch-erase")
-
 class_name = sys.argv[1]
 model_name = "runwayml/stable-diffusion-v1-5"
 condition_image = f'test_input_images/{class_name}_sketch.png'
@@ -214,7 +211,8 @@ model = StableDiffusionControlNetPipeline.from_pretrained(
 for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
-unet_train_method = 'xattn'
+unet_train_method = 'none'
+unet_params = 0
 
 parameters = []
 # Iterate through model parameters based on the training method
@@ -224,35 +222,53 @@ for name, param in model.unet.named_parameters():
             print("noxattn")
         else:
             parameters.append(param)
+            unet_params+=1
     elif unet_train_method == 'selfattn':
         if 'attn1' in name:
             parameters.append(param)
+            unet_params+=1
     elif unet_train_method == 'xattn':
         if 'attn2' in name:
             parameters.append(param)
+            unet_params+=1
     elif unet_train_method == 'allattn':
         if 'attn1' in name or 'attn2' in name:
             parameters.append(param)
+            unet_params+=1
     elif unet_train_method == 'full':
         parameters.append(param)
+        unet_params+=1
     elif unet_train_method == 'notime':
         if not (name.startswith('out.') or 'time_embed' in name):
             parameters.append(param)
+            unet_params+=1
     elif unet_train_method == 'xlayer':
         if 'attn2' in name:
             if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
                 parameters.append(param)
+                unet_params+=1
     elif unet_train_method == 'selflayer':
         if 'attn1' in name:
             if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
                 parameters.append(param)
+                unet_params+=1
+
+print("unet parameters count: ", unet_params)
 
 controlnet_train_blocks = "attentions"
+cnet_params = 0
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_blocks in name:
+        param.requires_grad = True  # Ensure requires_grad is True
         parameters.append(param)
+        cnet_params+=1
 
-print("controlnet parameters count: ", len(parameters))
+print("controlnet parameters count: ", cnet_params)
+
+# Debug: print parameters to be optimized
+print("Parameters to be optimized:")
+for param in parameters:
+    print(param.shape, param.requires_grad)
 
 model.to(device)
 
@@ -266,6 +282,9 @@ criteria = torch.nn.MSELoss()
 
 def print_tensor_stats(tensor, name):
     print(f'{name} stats: min={tensor.min().item()}, max={tensor.max().item()}, mean={tensor.mean().item()}, std={tensor.std().item()}')
+
+wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
+wandb.init(project="sketch-erase", name = f'{class_name}_{unet_train_method}-unet_{controlnet_train_blocks}-cnet')
 
 config = {
     "model_name": model_name,
@@ -328,12 +347,22 @@ for i in pbar:
     e_p = e_p.detach()
 
     eta = 0.5  # Example value, adjust as needed
-    loss = criteria(e_n, e_0 - eta * (e_p - e_0))
+    # loss = criteria(e_n, e_0 - eta * (e_p - e_0))
+    loss = criteria(e_n, e_0 - (1 * (e_p - e_0)))
 
     print("Loss: ", loss.item())
     wandb.log({"loss": loss.item()})
 
     loss.backward()
+
+    # Debug: Check if gradients are being computed
+    print("Gradients after backward pass:")
+    for name, param in model.controlnet.named_parameters():
+        if param.grad is not None:
+            print(f"{name}: {param.grad.abs().mean().item()}")
+        else:
+            print(f"{name}: No gradients")
+
     pbar.set_postfix({"loss": loss.item()})
     optimizer.step()
 
