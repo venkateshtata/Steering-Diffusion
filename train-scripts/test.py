@@ -73,8 +73,9 @@ with torch.no_grad():
         encoder_hidden_states=text_embeddings.to(device, torch.float32),
         controlnet_cond=control_image.to(device, torch.float32),
         conditioning_scale=1.0,
-        return_dict=True
+        return_dict=True,
     )
+    
     
     print("controlnet_output shape: ", controlnet_output[1].shape)
     print("noisy_latents shape: ", noisy_latents.shape)

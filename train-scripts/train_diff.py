@@ -164,38 +164,68 @@ def sampler(pipeline, size, image_path, t):
 
     return captured_latents.to(device, torch.float32)
 
-def apply_unet_model(unet, vae, image_path, text_encoder, tokenizer, prompt, device, weight_dtype, noise_scheduler):
-    # Load and preprocess the condition image
-    image = load_image(image_path)
-    image_tensor = transforms.Compose([
-        transforms.Resize((512, 512)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5])
-    ])(image).unsqueeze(0).to(device, dtype=weight_dtype)
+def apply_unet_model(controlnet, unet, vae, image_path, text_encoder, tokenizer, prompt, device, weight_dtype, noise_scheduler):
+    n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
+    n_samples = 1
 
-    # Encode the condition image to latents
-    latents = vae.encode(image_tensor).latent_dist.sample() * vae.config.scaling_factor
+    # For the conditional image init
+    image = load_image_as_array(image_path)
+    input_image = HWC3(image)
+    detected_map = apply_hed(resize_image(input_image, 512))
+    detected_map = HWC3(detected_map)
+    img = resize_image(input_image, 512)
+    H, W, C = img.shape
 
-    # Sample noise to add to the latents
-    noise = torch.randn_like(latents)
-    bsz = latents.shape[0]
+    detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+    detected_map = nms(detected_map, 127, 3.0)
+    detected_map = cv2.GaussianBlur(detected_map, (0, 0), 3.0)
+    detected_map[detected_map > 4] = 255
+    detected_map[detected_map < 255] = 0
 
-    # Sample a random timestep for each image
-    timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device)
-    timesteps = timesteps.long()
+    control = torch.from_numpy(detected_map.copy()).float().to(device, torch.float32) / 255.0
+    control = torch.stack([control for _ in range(n_samples)], dim=0)
+    control = einops.rearrange(control, 'b h w c -> b c h w').clone().to(device, torch.float32)
 
-    # Add noise to the latents according to the noise magnitude at each timestep
-    noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
-
-    # Tokenize the prompt for text conditioning
+    # Prepare prompt and control images
+    # prompt = class_name + a_prompt
     text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
     text_inputs = move_to_device(text_inputs, device)
     encoder_hidden_states = text_encoder(text_inputs['input_ids'])[0]
 
-    # Predict the noise residual
-    model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+    # Get the latents from ControlNet
+    noise_scheduler = DDPMScheduler.from_config(controlnet.config)  # Assuming the noise scheduler is initialized somewhere
+    vae.eval()
+    text_encoder.eval()
+    # controlnet.eval()
 
-    return model_pred
+    # Get the controlnet latents
+    latent_vector = vae.encode(control).latent_dist.sample() * vae.config.scaling_factor
+    noise = torch.randn_like(latent_vector)
+    timesteps = torch.tensor([t], device=device)
+    noisy_latents = noise_scheduler.add_noise(latent_vector, noise, timesteps)
+    controlnet_image = control
+
+    down_block_res_samples, mid_block_res_sample = controlnet(
+        noisy_latents,
+        timesteps,
+        encoder_hidden_states=encoder_hidden_states,
+        controlnet_cond=controlnet_image,
+        return_dict=False,
+    )
+
+    # Predict the noise residual using U-Net
+    model_pred = unet(
+        noisy_latents,
+        timesteps,
+        encoder_hidden_states=encoder_hidden_states,
+        down_block_additional_residuals=[
+            sample.to(dtype=weight_dtype) for sample in down_block_res_samples
+        ],
+        mid_block_additional_residual=mid_block_res_sample.to(dtype=weight_dtype),
+        return_dict=False,
+    )[0]
+
+    return model_pred.to(device, torch.float32)
 
 controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker=None)
 model_orig = StableDiffusionControlNetPipeline.from_pretrained(
@@ -255,7 +285,7 @@ for name, param in model.unet.named_parameters():
 
 print("unet parameters count: ", unet_params)
 
-controlnet_train_blocks = "attentions"
+controlnet_train_blocks = "down_blocks.0.attentions.0.transformer"
 cnet_params = 0
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_blocks in name:
@@ -310,38 +340,14 @@ for i in pbar:
 
     with torch.no_grad():
         z = sampler(model, 512, condition_image, t)
-
         a_prompt = "best quality, extremely detailed"
         unprompt = " " + a_prompt
-        
-        uncond_image_tensor = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5], [0.5])
-        ])(load_image(uncondition_image)).unsqueeze(0).to(device, torch.float32)
-
-        latent_uncondition_image = encode_image(load_image(uncondition_image), model_orig.vae.to(device, torch.float32)).detach()
-        text_inputs = tokenizer(unprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-        text_inputs = move_to_device(text_inputs, device)
-        text_embeddings = text_encoder(text_inputs["input_ids"]).last_hidden_state.detach()
-        uncond = {'c_concat': [latent_uncondition_image], 'c_crossattn': [text_embeddings]}
-        e_0 = apply_unet_model(model_orig.unet, model.vae, uncondition_image, text_encoder, tokenizer, unprompt, device, torch.float32, noise_scheduler)
-
         cprompt = class_name + a_prompt
-        latent_condition_image = encode_image(load_image(condition_image), model_orig.vae.to(device, torch.float32)).detach()
-        text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-        text_inputs = move_to_device(text_inputs, device)
-        text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
-        cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
-        e_p = apply_unet_model(model_orig.unet, model.vae, condition_image, text_encoder, tokenizer, cprompt, device, torch.float32, noise_scheduler)
 
-    latent_condition_image = encode_image(load_image(condition_image), model.vae.to(device, torch.float32)).detach()
-    text_inputs = tokenizer(cprompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
-    text_inputs = move_to_device(text_inputs, device)
-    text_embeddings = text_encoder(text_inputs['input_ids']).last_hidden_state.detach()
-    cond = {'c_crossattn': [text_embeddings], 'c_concat': [latent_condition_image]}
+        e_0 = apply_unet_model(model_orig.controlnet, model_orig.unet, model_orig.vae, uncondition_image, text_encoder, tokenizer, unprompt, device, torch.float32, noise_scheduler)
+        e_p = apply_unet_model(model_orig.controlnet, model_orig.unet, model_orig.vae, condition_image, text_encoder, tokenizer, cprompt, device, torch.float32, noise_scheduler)
 
-    e_n = apply_unet_model(model.unet, model.vae, condition_image, text_encoder, tokenizer, cprompt, device, torch.float32, noise_scheduler)
+    e_n = apply_unet_model(model.controlnet, model.unet, model.vae, condition_image, text_encoder, tokenizer, cprompt, device, torch.float32, noise_scheduler)
 
     e_0 = e_0.detach()
     e_p = e_p.detach()
@@ -356,12 +362,12 @@ for i in pbar:
     loss.backward()
 
     # Debug: Check if gradients are being computed
-    print("Gradients after backward pass:")
-    for name, param in model.controlnet.named_parameters():
-        if param.grad is not None:
-            print(f"{name}: {param.grad.abs().mean().item()}")
-        else:
-            print(f"{name}: No gradients")
+    # print("Gradients after backward pass:")
+    # for name, param in model.controlnet.named_parameters():
+    #     if param.grad is not None:
+    #         print(f"{name}: {param.grad.abs().mean().item()}")
+    #     else:
+    #         print(f"{name}: No gradients")
 
     pbar.set_postfix({"loss": loss.item()})
     optimizer.step()
