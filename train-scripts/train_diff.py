@@ -3,7 +3,6 @@ from PIL import Image
 import numpy as np
 from annotator.util import resize_image, HWC3
 from annotator.hed import HEDdetector, nms
-from diffusers.utils import load_image
 import cv2
 import einops
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler, DDPMScheduler
@@ -14,19 +13,24 @@ from tqdm import tqdm
 import os
 from pytorch_lightning import seed_everything
 import random
-import torch.nn.functional as F
 import sys
-import wandb 
+import wandb
+from peft import LoraConfig
+
+
 
 a_prompt = "best quality, extremely detailed"
 n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
+
+def count_trainable_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def save_image_to_wandb(image, filename):
     image_path = os.path.join("wandb_images", filename)
     os.makedirs(os.path.dirname(image_path), exist_ok=True)
     image.save(image_path)
     wandb.log({filename: wandb.Image(image_path)})
-
 
 def save_model_with_removal(path, params):
     if os.path.exists(path):
@@ -38,6 +42,8 @@ previous_unet_save_path = None
 previous_cnet_save_path = None
 
 class_name = sys.argv[1]
+device = f'cuda:{sys.argv[2]}' 
+
 model_name = "runwayml/stable-diffusion-v1-5"
 condition_image = f'test_input_images/{class_name}_sketch.png'
 uncondition_image = "unconditional.png"
@@ -46,6 +52,7 @@ iterations = 500
 intermediate_model_dir = "intermediate_models"
 controlnet_path = "converted_model"
 save_interval = 50
+learning_rate = 1e-5
 
 # Initialize the noise scheduler
 noise_scheduler = DDPMScheduler()
@@ -82,7 +89,7 @@ timesteps_mapping = [
     160, 140, 120, 100, 80, 60, 40, 20
 ]
 
-device = f'cuda:{sys.argv[2]}' 
+
 
 text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
 tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
@@ -124,7 +131,7 @@ def sampler(pipeline, size, image_path, t):
     detected_map = HWC3(detected_map)
     img = resize_image(input_image, size)
     H, W, C = img.shape
-
+    
     detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
     detected_map = nms(detected_map, 127, 3.0)
     detected_map = cv2.GaussianBlur(detected_map, (0, 0), 3.0)
@@ -146,7 +153,7 @@ def sampler(pipeline, size, image_path, t):
     
     generator = torch.manual_seed(0)
     callback = LatentCaptureCallback(target_step=t, timesteps_mapping=timesteps_mapping)
-    
+
     output = pipeline(
         prompt=prompt,
         negative_prompt=negative_prompt,
@@ -157,7 +164,7 @@ def sampler(pipeline, size, image_path, t):
         callback_steps=1,
         generator=generator,
         return_dict=True,
-        )
+    )
 
     # Retrieve the captured latents
     captured_latents = callback.captured_latents
@@ -165,7 +172,6 @@ def sampler(pipeline, size, image_path, t):
     return captured_latents.to(device, torch.float32)
 
 def apply_unet_model(controlnet, unet, vae, image_path, text_encoder, tokenizer, prompt, device, weight_dtype, noise_scheduler):
-    n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
     n_samples = 1
 
     # For the conditional image init
@@ -187,18 +193,15 @@ def apply_unet_model(controlnet, unet, vae, image_path, text_encoder, tokenizer,
     control = einops.rearrange(control, 'b h w c -> b c h w').clone().to(device, torch.float32)
 
     # Prepare prompt and control images
-    # prompt = class_name + a_prompt
     text_inputs = tokenizer(prompt, return_tensors="pt", padding="max_length", truncation=True, max_length=77)
     text_inputs = move_to_device(text_inputs, device)
     encoder_hidden_states = text_encoder(text_inputs['input_ids'])[0]
 
     # Get the latents from ControlNet
-    noise_scheduler = DDPMScheduler.from_config(controlnet.config)  # Assuming the noise scheduler is initialized somewhere
+    noise_scheduler = DDPMScheduler.from_config(controlnet.config)
     vae.eval()
     text_encoder.eval()
-    # controlnet.eval()
 
-    # Get the controlnet latents
     latent_vector = vae.encode(control).latent_dist.sample() * vae.config.scaling_factor
     noise = torch.randn_like(latent_vector)
     timesteps = torch.tensor([t], device=device)
@@ -227,94 +230,113 @@ def apply_unet_model(controlnet, unet, vae, image_path, text_encoder, tokenizer,
 
     return model_pred.to(device, torch.float32)
 
-controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker=None)
-model_orig = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, device=device, safety_checker=None
-)
 
-controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, device=device, use_safetensors=True, safety_checker=None)
-model = StableDiffusionControlNetPipeline.from_pretrained(
-    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, device=device, safety_checker=None
+controlnet_orig = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, use_safetensors=True, safety_checker=None)
+model_orig = StableDiffusionControlNetPipeline.from_pretrained(
+    model_name, controlnet=controlnet_orig, torch_dtype=torch.float32, use_safetensors=True, safety_checker=None
 )
 
 # Freeze the original model parameters
 for param in model_orig.controlnet.parameters():
     param.requires_grad = False
 
-unet_train_method = 'none'
-unet_params = 0
+
+controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float32, use_safetensors=True, safety_checker=None)
+model = StableDiffusionControlNetPipeline.from_pretrained(
+    model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, safety_checker=None
+)
+
+trainable_params_before = count_trainable_params(model.unet)
+print(f"UNet parameters before adding LoRA: {trainable_params_before}")
+
+
+unet_lora_config = LoraConfig(
+    r=16,
+    lora_alpha=16,
+    init_lora_weights="gaussian",
+    target_modules=["to_k", "to_q", "to_v", "to_out.0"],
+)
+
+model.unet.add_adapter(unet_lora_config)
+
+trainable_params_after = count_trainable_params(model.unet)
+print(f"UNet parameters after adding LoRA: {trainable_params_after}")
+
+
+unet_train_method = 'lora'
+controlnet_train_blocks = "down_blocks.0.attentions.0.transformer_blocks.0.attn1"
 
 parameters = []
-# Iterate through model parameters based on the training method
-for name, param in model.unet.named_parameters():
-    if unet_train_method == 'noxattn':
-        if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
-            print("noxattn")
-        else:
-            parameters.append(param)
-            unet_params+=1
-    elif unet_train_method == 'selfattn':
-        if 'attn1' in name:
-            parameters.append(param)
-            unet_params+=1
-    elif unet_train_method == 'xattn':
-        if 'attn2' in name:
-            parameters.append(param)
-            unet_params+=1
-    elif unet_train_method == 'allattn':
-        if 'attn1' in name or 'attn2' in name:
-            parameters.append(param)
-            unet_params+=1
-    elif unet_train_method == 'full':
-        parameters.append(param)
-        unet_params+=1
-    elif unet_train_method == 'notime':
-        if not (name.startswith('out.') or 'time_embed' in name):
-            parameters.append(param)
-            unet_params+=1
-    elif unet_train_method == 'xlayer':
-        if 'attn2' in name:
-            if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
-                parameters.append(param)
-                unet_params+=1
-    elif unet_train_method == 'selflayer':
-        if 'attn1' in name:
-            if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
-                parameters.append(param)
-                unet_params+=1
 
-print("unet parameters count: ", unet_params)
+for p in model.unet.parameters():
+    if p.requires_grad:
+        parameters.append(p)
 
-controlnet_train_blocks = "down_blocks.0.attentions.0.transformer"
+
+# unet_params = 0
+# for name, param in model.unet.named_parameters():
+#     if unet_train_method == 'noxattn':
+#         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
+#             print("noxattn")
+#         else:
+#             parameters.append(param)
+#             unet_params+=1
+#     elif unet_train_method == 'selfattn':
+#         if 'attn1' in name:
+#             parameters.append(param)
+#             unet_params+=1
+#     elif unet_train_method == 'xattn':
+#         if 'attn2' in name:
+#             parameters.append(param)
+#             unet_params+=1
+#     elif unet_train_method == 'allattn':
+#         if 'attn1' in name or 'attn2' in name:
+#             parameters.append(param)
+#             unet_params+=1
+#     elif unet_train_method == 'full':
+#         parameters.append(param)
+#         unet_params+=1
+#     elif unet_train_method == 'notime':
+#         if not (name.startswith('out.') or 'time_embed' in name):
+#             parameters.append(param)
+#             unet_params+=1
+#     elif unet_train_method == 'xlayer':
+#         if 'attn2' in name:
+#             if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
+#                 parameters.append(param)
+#                 unet_params+=1
+#     elif unet_train_method == 'selflayer':
+#         if 'attn1' in name:
+#             if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
+#                 parameters.append(param)
+#                 unet_params+=1
+# print("unet parameters count: ", unet_params)
+
+
 cnet_params = 0
 for name, param in model.controlnet.named_parameters():
     if controlnet_train_blocks in name:
         param.requires_grad = True  # Ensure requires_grad is True
         parameters.append(param)
         cnet_params+=1
+print("Controlnet parameters: ", cnet_params)
 
-print("controlnet parameters count: ", cnet_params)
 
-# Debug: print parameters to be optimized
-print("Parameters to be optimized:")
-for param in parameters:
-    print(param.shape, param.requires_grad)
+print("Total Training Parameters: ", len(parameters))
+
 
 model.to(device)
-
-# Set the model to training mode
 model.unet.train()
 model.controlnet.train()
 
-# Set up the optimizer and loss function
-optimizer = torch.optim.Adam(parameters, lr=1e-5)
+optimizer = torch.optim.Adam(parameters, lr=learning_rate)
 criteria = torch.nn.MSELoss()
 
 def print_tensor_stats(tensor, name):
     print(f'{name} stats: min={tensor.min().item()}, max={tensor.max().item()}, mean={tensor.mean().item()}, std={tensor.std().item()}')
 
 wandb.login(key="6b9529ffc8d1630ecad71718647e2e14c98bf360")
-wandb.init(project="sketch-erase", name = f'{class_name}_{unet_train_method}-unet_{controlnet_train_blocks}-cnet')
+wandb.init(project="sketch-erase", name=f'{class_name}_{unet_train_method}-unet_{controlnet_train_blocks}-cnet')
 
 config = {
     "model_name": model_name,
@@ -322,17 +344,15 @@ config = {
     "iterations": iterations,
     "unet_train_method": unet_train_method,
     "controlnet_train_blocks": controlnet_train_blocks,
-    "learning_rate": 1e-5,
+    "learning_rate": learning_rate,
     "class_name": class_name
 }
 
 wandb.config.update(config)
 
-# In your training loop:
 pbar = tqdm(range(iterations))
 for i in pbar:
     optimizer.zero_grad()
-
     t = torch.randint(0, ddim_steps, (1,), device=device, dtype=torch.long)
 
     model.to(device)
@@ -352,8 +372,7 @@ for i in pbar:
     e_0 = e_0.detach()
     e_p = e_p.detach()
 
-    eta = 0.5  # Example value, adjust as needed
-    # loss = criteria(e_n, e_0 - eta * (e_p - e_0))
+    eta = 0.5
     loss = criteria(e_n, e_0 - (1 * (e_p - e_0)))
 
     print("Loss: ", loss.item())
@@ -361,35 +380,23 @@ for i in pbar:
 
     loss.backward()
 
-    # Debug: Check if gradients are being computed
-    # print("Gradients after backward pass:")
-    # for name, param in model.controlnet.named_parameters():
-    #     if param.grad is not None:
-    #         print(f"{name}: {param.grad.abs().mean().item()}")
-    #     else:
-    #         print(f"{name}: No gradients")
-
     pbar.set_postfix({"loss": loss.item()})
     optimizer.step()
 
     torch.cuda.empty_cache()
     
     if (i + 1) % save_interval == 0:
-        # Define current file paths
         current_unet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_unet_{unet_train_method}/', f'{class_name}_{unet_train_method}_{i+1}_unet.safetensors')
         current_cnet_save_path = os.path.join(f'{intermediate_model_dir}/{class_name}_cnet_{controlnet_train_blocks}/', f'{class_name}_{controlnet_train_blocks}_{i+1}_cnet.safetensors')
 
-        # Create directories if they don't exist
         os.makedirs(os.path.dirname(current_unet_save_path), exist_ok=True)
         os.makedirs(os.path.dirname(current_cnet_save_path), exist_ok=True)
 
-        # Remove previous files if they exist
         if previous_unet_save_path and os.path.exists(previous_unet_save_path):
             os.remove(previous_unet_save_path)
         if previous_cnet_save_path and os.path.exists(previous_cnet_save_path):
             os.remove(previous_cnet_save_path)
 
-        # Save current model parameters
         unet_params = model.unet.state_dict()
         save_model_with_removal(current_unet_save_path, unet_params)
         print(f'Intermediate unet model saved at iteration {i+1} as {class_name}_{unet_train_method}_{i+1}_unet.safetensors')
@@ -398,22 +405,14 @@ for i in pbar:
         save_model_with_removal(current_cnet_save_path, cnet_params)
         print(f'Intermediate cnet model saved at iteration {i+1} as {class_name}_{controlnet_train_blocks}_{i+1}_cnet.safetensors')
 
-        # Update previous file paths
         previous_unet_save_path = current_unet_save_path
         previous_cnet_save_path = current_cnet_save_path
 
-        # Array of class names to generate images for
         class_names = ["airplane", "apple", "axe", "banana", "bicycle", "cat", "dog", "fish", "guitar", "mushroom"]
-
-        # List to store generated images
         generated_images = []
 
-        # Generate and save images for each class
         for c_name in class_names:
-            # Define prompt and load condition image for the current class
             condition_image = f'test_input_images/{c_name}_sketch.png'
-
-            # Process the condition image to get control tensor
             image = load_image_as_array(condition_image)
             input_image = HWC3(image)
             detected_map = apply_hed(resize_image(input_image, 512))
@@ -430,10 +429,7 @@ for i in pbar:
             control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
             control = torch.stack([control for _ in range(1)], dim=0)
             cond_control = einops.rearrange(control, 'b h w c -> b c h w').clone()
-            
-            
 
-            # Generate and save an image to wandb
             generator = torch.manual_seed(0)
             prompt = a_prompt + c_name
             output_image = model(
@@ -444,15 +440,12 @@ for i in pbar:
                 image=cond_control,
             ).images[0]
 
-            # Save the generated image to the list
             generated_images.append(output_image)
 
-        # Create a composite image
         composite_image = Image.new('RGB', (512 * len(generated_images), 512))
         for idx, image in enumerate(generated_images):
             composite_image.paste(image, (512 * idx, 0))
 
-        # Save the composite image to wandb
         filename = f'{class_name}_{unet_train_method}_{controlnet_train_blocks}_{i+1}.png'
         save_image_to_wandb(composite_image, filename)
 

@@ -1,98 +1,84 @@
-import cv2
-from PIL import Image
-import numpy as np
 import torch
-from diffusers.utils import load_image
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel
-from diffusers import UniPCMultistepScheduler
-from transformers import CLIPTextModel, CLIPTokenizer
+from diffusers import StableDiffusionPipeline, DDPMScheduler
+from diffusers.optimization import get_scheduler
+from torch.optim import AdamW
+from torch.utils.data import DataLoader, Dataset
+from datasets import load_dataset
+from transformers import CLIPProcessor, CLIPTextModel, CLIPTokenizer
+from tqdm import tqdm
 
-# Load image
-image = load_image("https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/diffusers/landscape.png")
-image = np.array(image)
+# Load the dataset from Hugging Face
+dataset = load_dataset("cifar10", split="train")
 
-# Apply Canny edge detection
-low_threshold = 100
-high_threshold = 200
-image = cv2.Canny(image, low_threshold, high_threshold)
-image = image[:, :, None]
-image = np.concatenate([image, image, image], axis=2)
-canny_image = Image.fromarray(image)
-
-device = "cuda:0"
-
-# Load ControlNet and pipeline
-controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float32).to("cuda")
-pipe = StableDiffusionControlNetPipeline.from_pretrained(
-    "runwayml/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float32
-).to("cuda")
-
-pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-
-# Enable model CPU offload
-pipe.enable_model_cpu_offload()
-
-# Seed for reproducibility
-generator = torch.manual_seed(0)
-
-# Tokenizer and text encoder
-tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14").to(device, torch.float32)
-
-# Prompt
-prompt = "a giant standing in a fantasy landscape, best quality"
-text_inputs = tokenizer(prompt, padding="max_length", max_length=tokenizer.model_max_length, return_tensors="pt")
-text_input_ids = text_inputs.input_ids.to(device)
-
-# Get text embeddings
-text_embeddings = text_encoder(text_input_ids)[0]
-
-print("pipe.unet.sample_size: ", pipe.unet.sample_size)
-
-# Generate initial noisy latents
-latents = torch.randn((1, pipe.unet.in_channels, pipe.unet.sample_size, pipe.unet.sample_size), generator=generator).to(device, torch.float32)
-
-# Define desired timestep
-desired_timestep = 15
-
-# Get scheduler's sigmas and timesteps
-pipe.scheduler.set_timesteps(num_inference_steps=30)
-sigmas = pipe.scheduler.sigmas.to(device, torch.float32)
-
-# Add noise to the latents for the given timestep
-noisy_latents = latents * sigmas[desired_timestep]
-
-# Encode the canny image condition
-control_image = torch.from_numpy(np.array(canny_image)).permute(2, 0, 1).unsqueeze(0).to(device, torch.float32) / 255.0
-
-# Pass through ControlNet to get the conditioning output
-with torch.no_grad():
-    controlnet_output = pipe.controlnet(
-        sample=noisy_latents.to(device, torch.float32),
-        timestep=torch.tensor([desired_timestep]).to(device, torch.float32),
-        encoder_hidden_states=text_embeddings.to(device, torch.float32),
-        controlnet_cond=control_image.to(device, torch.float32),
-        conditioning_scale=1.0,
-        return_dict=True,
-    )
+# Preprocess the dataset
+class HuggingFaceDataset(Dataset):
+    def __init__(self, dataset, processor):
+        self.dataset = dataset
+        self.processor = processor
     
+    def __len__(self):
+        return len(self.dataset)
     
-    print("controlnet_output shape: ", controlnet_output[1].shape)
-    print("noisy_latents shape: ", noisy_latents.shape)
+    def __getitem__(self, idx):
+        image = self.dataset[idx]['img']
+        text = "A photo of a " + self.dataset[idx]['label']
+        inputs = self.processor(images=image, return_tensors="pt").pixel_values.squeeze(0)
+        return {"inputs": inputs, "text": text}
 
-# Pass through UNet model to get noise prediction at the desired timestep
-with torch.no_grad():
-    noise_pred = pipe.unet(
-        noisy_latents + controlnet_output,
-        torch.tensor([desired_timestep]).to("cuda"),
-        encoder_hidden_states=text_embeddings
-    ).sample
+# Initialize the model, scheduler, and processor
+model_name = "runwayml/stable-diffusion-v1-5"
+pipeline = StableDiffusionPipeline.from_pretrained(model_name)
+pipeline.to("cuda")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-base-patch32")
+tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
 
-# Convert noise prediction to numpy array for further processing if needed
-noise_pred_np = noise_pred.cpu().numpy()
-print("Noise prediction shape:", noise_pred_np.shape)
+# Prepare the dataset and dataloader
+huggingface_dataset = HuggingFaceDataset(dataset, processor)
+dataloader = DataLoader(huggingface_dataset, batch_size=4, shuffle=True)
 
-# Save the predicted noise as an image (optional visualization, this step may require normalization to [0, 255])
-# Here we just save it directly for simplicity, but you may need to adjust it for proper visualization
-noise_image = (noise_pred_np[0].transpose(1, 2, 0) * 255).astype(np.uint8)
-Image.fromarray(noise_image).save("./noise_prediction.png")
+# Initialize optimizer and scheduler
+num_epochs = 5
+optimizer = AdamW(pipeline.unet.parameters(), lr=1e-4)
+scheduler = get_scheduler("linear", optimizer, num_warmup_steps=500, num_training_steps=len(dataloader) * num_epochs)
+
+# Initialize the noise scheduler
+noise_scheduler = DDPMScheduler.from_config(model_name)
+
+# Training loop
+for epoch in range(num_epochs):
+    pipeline.unet.train()
+    for batch in tqdm(dataloader):
+        # Get the input data and move it to the GPU
+        inputs = batch['inputs'].to("cuda")
+        texts = batch['text']
+        
+        # Tokenize the text
+        text_inputs = tokenizer(texts, padding="max_length", return_tensors="pt", max_length=tokenizer.model_max_length, truncation=True)
+        text_inputs = text_inputs.input_ids.to("cuda")
+        
+        # Encode the text
+        with torch.no_grad():
+            encoder_hidden_states = text_encoder(text_inputs).last_hidden_state
+        
+        # Add noise to the inputs
+        noise = torch.randn_like(inputs)
+        timesteps = torch.randint(0, noise_scheduler.num_train_timesteps, (inputs.shape[0],), device=inputs.device).long()
+        noisy_inputs = noise_scheduler.add_noise(inputs, noise, timesteps)
+        
+        # Forward pass
+        outputs = pipeline.unet(noisy_inputs, timesteps, encoder_hidden_states).sample
+        
+        # Calculate loss
+        loss = torch.nn.functional.mse_loss(outputs, noise)
+        
+        # Backward pass
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+        
+        print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+
+# Save the model
+# pipeline.save_pretrained("path/to/save/model")
