@@ -20,7 +20,7 @@ from peft import LoraConfig
 
 
 a_prompt = "best quality, extremely detailed"
-n_prompt = "extra digit, fewer digits, cropped, worst quality, low quality, noisy"
+n_prompt = "extra digit, fewer digits, cropped, worst quality, low  quality, noisy"
 
 def count_trainable_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -246,6 +246,24 @@ model = StableDiffusionControlNetPipeline.from_pretrained(
     model_name, controlnet=controlnet, use_safetensors=True, torch_dtype=torch.float32, safety_checker=None
 )
 
+
+cnet_trainable_params_before = count_trainable_params(model.controlnet)
+print(f"ControlNet parameters before adding LoRA: {cnet_trainable_params_before}")
+
+cnet_lora_config = LoraConfig(
+    r=16,
+    lora_alpha=16,
+    init_lora_weights="gaussian",
+    target_modules=["to_k", "to_q", "to_v", "to_out.0"],
+)
+
+model.controlnet.add_adapter(cnet_lora_config)
+
+cnet_trainable_params_after = count_trainable_params(model.controlnet)
+print(f"ControlNet parameters after adding LoRA: {cnet_trainable_params_after}")
+
+
+
 trainable_params_before = count_trainable_params(model.unet)
 print(f"UNet parameters before adding LoRA: {trainable_params_before}")
 
@@ -263,8 +281,8 @@ trainable_params_after = count_trainable_params(model.unet)
 print(f"UNet parameters after adding LoRA: {trainable_params_after}")
 
 
-unet_train_method = 'lora'
-controlnet_train_blocks = "down_blocks.0.attentions.0.transformer_blocks.0.attn1"
+unet_train_method = "lora"
+controlnet_train_blocks = "lora"
 
 parameters = []
 
