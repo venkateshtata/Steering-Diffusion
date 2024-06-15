@@ -247,6 +247,18 @@ model = StableDiffusionControlNetPipeline.from_pretrained(
 )
 
 
+unet_params = 0
+for p in model.unet.parameters():
+    if p.requires_grad:
+        unet_params+=1
+print("Total UNet params BEFORE LORA: ", unet_params)
+
+cnet_params = 0
+for p in model.controlnet.parameters():
+    if p.requires_grad:
+        cnet_params+=1
+print("Total ControlNet params BEFORE LORA: ", cnet_params)
+
 cnet_trainable_params_before = count_trainable_params(model.controlnet)
 print(f"ControlNet parameters before adding LoRA: {cnet_trainable_params_before}")
 
@@ -286,58 +298,21 @@ controlnet_train_blocks = "lora"
 
 parameters = []
 
+unet_params = 0
 for p in model.unet.parameters():
     if p.requires_grad:
         parameters.append(p)
-
-
-# unet_params = 0
-# for name, param in model.unet.named_parameters():
-#     if unet_train_method == 'noxattn':
-#         if name.startswith('out.') or 'attn2' in name or 'time_embed' in name:
-#             print("noxattn")
-#         else:
-#             parameters.append(param)
-#             unet_params+=1
-#     elif unet_train_method == 'selfattn':
-#         if 'attn1' in name:
-#             parameters.append(param)
-#             unet_params+=1
-#     elif unet_train_method == 'xattn':
-#         if 'attn2' in name:
-#             parameters.append(param)
-#             unet_params+=1
-#     elif unet_train_method == 'allattn':
-#         if 'attn1' in name or 'attn2' in name:
-#             parameters.append(param)
-#             unet_params+=1
-#     elif unet_train_method == 'full':
-#         parameters.append(param)
-#         unet_params+=1
-#     elif unet_train_method == 'notime':
-#         if not (name.startswith('out.') or 'time_embed' in name):
-#             parameters.append(param)
-#             unet_params+=1
-#     elif unet_train_method == 'xlayer':
-#         if 'attn2' in name:
-#             if 'output_blocks.6.' in name or 'output_blocks.8.' in name:
-#                 parameters.append(param)
-#                 unet_params+=1
-#     elif unet_train_method == 'selflayer':
-#         if 'attn1' in name:
-#             if 'input_blocks.4.' in name or 'input_blocks.7.' in name: 
-#                 parameters.append(param)
-#                 unet_params+=1
-# print("unet parameters count: ", unet_params)
-
+        unet_params+=1
+print("Total UNet params: ", unet_params)
 
 cnet_params = 0
-for name, param in model.controlnet.named_parameters():
-    if controlnet_train_blocks in name:
-        param.requires_grad = True  # Ensure requires_grad is True
-        parameters.append(param)
+for p in model.controlnet.parameters():
+    if p.requires_grad:
+        parameters.append(p)
         cnet_params+=1
-print("Controlnet parameters: ", cnet_params)
+print("Total ControlNet params: ", cnet_params)
+
+
 
 
 print("Total Training Parameters: ", len(parameters))
