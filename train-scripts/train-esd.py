@@ -12,11 +12,14 @@ from cldm.ddim_hacked import DDIMSampler
 from annotator.util import resize_image, HWC3
 from annotator.hed import HEDdetector, nms
 import cv2
-
+import wandb
 import einops
 from pytorch_lightning import seed_everything
 
 apply_hed = HEDdetector()
+
+learning_rate = 1e-5
+
 
 
 
@@ -28,8 +31,7 @@ def load_image_as_array(image_path):
         return image_array
 
 
-def load_model_from_config(config, ckpt, device="cpu", verbose=False):
-    learning_rate = 1e-5
+def load_model_from_config(config, ckpt, device="cpu", verbose=False, learning_rate = 1e-5):
     sd_locked = True
     only_mid_control = False
     model = create_model(config).to(device)
@@ -328,6 +330,8 @@ def train_esd(prompt, train_method, start_guidance, negative_guidance, iteration
         pbar.set_postfix({"loss": loss.item()})
         history.append(loss.item())
         opt.step()
+
+        wandb.log({"loss": loss.item()})
         
         torch.cuda.empty_cache()
 
@@ -381,7 +385,17 @@ if __name__ == '__main__':
     seperator = args.seperator
     image_size = args.image_size
     ddim_steps = args.ddim_steps
+
+    # Initialize wandb project
+    wandb.init(project="concept_erasing", entity="venkateshtata9", name=f'{prompt}_{train_method}_{iterations}')
     
     erase_condition_image = args.erase_condition_image
+
+    config = wandb.config
+    config.learning_rate = lr
+    config.iterations = iterations
+    config.class_name = prompt
+    config.train_method = train_method
+
 
     train_esd(prompt=prompt, train_method=train_method, start_guidance=start_guidance, negative_guidance=negative_guidance, iterations=iterations, lr=lr, config_path=config_path, ckpt_path=ckpt_path, diffusers_config_path=diffusers_config_path, devices=devices, seperator=seperator, image_size=image_size, ddim_steps=ddim_steps)
