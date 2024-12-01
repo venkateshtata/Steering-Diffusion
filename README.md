@@ -1,6 +1,8 @@
 
 # Sketch Erase
 
+![Results](img.png)
+
 ## Requirements
 
 ```bash
